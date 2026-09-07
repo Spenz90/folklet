@@ -145,6 +145,6 @@ for(const type of ['openai','anthropic','custom']){
  });
  test(`${protocol} explicitly identifies exceptional oversized tool output as truncated`,async()=>{
   const sent=await sentToolOutput('x'.repeat(2*1024*1024+100)+'OMITTED_TAIL');
-  assert.match(sent,/^\[Crew truncated this tool output/);assert.match(sent,/may not be valid JSON/);assert.equal(sent.length,2*1024*1024);assert.equal(sent.includes('OMITTED_TAIL'),false);
+  assert.match(sent,/^\[FOLKLET truncated this tool output/);assert.match(sent,/may not be valid JSON/);assert.equal(sent.length,2*1024*1024);assert.equal(sent.includes('OMITTED_TAIL'),false);
  });
 }

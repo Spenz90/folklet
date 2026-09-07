@@ -15,7 +15,7 @@ function Assert-CrewOutputPath([string]$Path) {
         $crewCheckPath = [IO.Path]::GetDirectoryName($crewCheckPath)
     }
 }
-$crewZipPath = Join-Path $crewOutput "Crew-$Kind.zip"
+$crewZipPath = Join-Path $crewOutput "Folklet-$Kind.zip"
 $crewChecksumPath = $crewZipPath + '.sha256'
 # Validate every existing ancestor and both final destinations before any write.
 foreach ($crewTarget in @($crewOutput, $crewZipPath, $crewChecksumPath)) { Assert-CrewOutputPath $crewTarget }
@@ -49,14 +49,14 @@ try {
     foreach ($crewRelative in $crewFiles) {
         $crewFile = Join-Path $crewRoot $crewRelative
         if ($DesktopExecutable -and $crewRelative -eq 'desktop/Crew.exe') { $crewFile = $DesktopExecutable }
-        $crewEntry = [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($crewZip, $crewFile, ('Crew/' + $crewRelative), [IO.Compression.CompressionLevel]::Optimal)
+        $crewEntry = [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($crewZip, $crewFile, ('Folklet/' + $crewRelative), [IO.Compression.CompressionLevel]::Optimal)
         if ($crewRelative.EndsWith('.sh')) { $crewEntry.ExternalAttributes = [int](493 -shl 16) }
     }
 } finally { $crewZip.Dispose(); $crewStream.Dispose() }
 $crewCheck = [IO.Compression.ZipFile]::OpenRead($crewTempPath)
 try {
     $crewActual = @($crewCheck.Entries | ForEach-Object { $_.FullName })
-    $crewExpected = @($crewFiles | ForEach-Object { 'Crew/' + $_ })
+    $crewExpected = @($crewFiles | ForEach-Object { 'Folklet/' + $_ })
     if (@(Compare-Object $crewExpected $crewActual).Count -ne 0) { throw 'Archive file list did not match the approved release files.' }
 } finally { $crewCheck.Dispose() }
 Move-Item -LiteralPath $crewTempPath -Destination $crewZipPath -Force

@@ -21,6 +21,10 @@ export class AppChanges{
  constructor({appRoot,dataRoot,store,learning,nodeExecutable=process.execPath,allowlist=sourceFiles,spawnProcess=spawn,isIdle}={}){
   this.appRoot=fs.realpathSync(appRoot);this.root=path.resolve(dataRoot,'app-change-drafts');this.store=store;this.learning=learning;this.node=nodeExecutable;this.allowlist=[...new Set(allowlist)].sort();this.spawnProcess=spawnProcess;this.isIdle=isIdle||(()=>!store.db.tasks.some(task=>['queued','running','waiting'].includes(task.status)));this.busy=new Set();this.processes=new Set();this.closed=false;
   if(fs.lstatSync(this.root,{throwIfNoEntry:false})?.isSymbolicLink())throw Error('App draft storage cannot be a symbolic link.');fs.mkdirSync(this.root,{recursive:true});
+  // macOS's /var is an OS path alias for /private/var. Node resolves that alias
+  // before enforcing --permission, so both cwd and grants must use the same
+  // canonical root. The draft root itself and its children still reject links.
+  this.root=fs.realpathSync(this.root);
  }
  directory(id){if(typeof id!=='string'||! /^[a-f0-9-]{36}$/.test(id))throw Error('Choose a valid app draft.');const directory=path.join(this.root,id);if(fs.lstatSync(directory,{throwIfNoEntry:false})?.isSymbolicLink())throw Error('App draft storage cannot be a symbolic link.');return directory;}
  metadata(id){const directory=this.directory(id),meta=readPrivateJson(path.join(directory,'draft.json'),null);if(!meta||meta.id!==id||!Array.isArray(meta.files)||!meta.baseHashes||meta.files.some(file=>!this.allowlist.includes(file)))throw Error('App draft metadata is invalid.');return meta;}
@@ -73,12 +77,12 @@ export class AppChanges{
   this.assertAvailable(id);if(confirmed!==true)throw Error('Explicitly approve applying this reviewed draft.');this.assertIdle();const meta=this.metadata(id),snapshot=this.diff(id);
   if(meta.status!=='draft'||!snapshot.changes.length||snapshot.reviewHash!==reviewHash||!meta.checks?.passed||meta.checks.reviewHash!==reviewHash||!meta.tests?.passed||meta.tests.reviewHash!==reviewHash)throw Error('This exact draft needs passing syntax checks and selected tests before applying.');
   const proposal=this.learning.get(meta.proposalId);if(proposal.kind!=='app-change'||proposal.botId!==meta.botId||proposal.status==='rejected')throw Error('The linked app-change proposal is unavailable or rejected. Create a new proposal before applying.');
-  for(const file of meta.files)if(hash(fs.readFileSync(regular(this.appRoot,file)))!==meta.baseHashes[file])throw Error('Crew’s source changed since this draft was created. Create a fresh draft.');
+  for(const file of meta.files)if(hash(fs.readFileSync(regular(this.appRoot,file)))!==meta.baseHashes[file])throw Error('FOLKLET’s source changed since this draft was created. Create a fresh draft.');
   const backup=path.join(this.directory(id),'backup');fs.mkdirSync(backup,{recursive:true});unlinkedTree(backup);
   meta.appliedHashes={};for(const change of snapshot.changes){const destination=path.join(backup,change.path);fs.mkdirSync(path.dirname(destination),{recursive:true});if(fs.existsSync(destination))throw Error('This draft already has an application backup.');fs.copyFileSync(regular(this.appRoot,change.path),destination,fs.constants.COPYFILE_EXCL);meta.appliedHashes[change.path]=hash(Buffer.from(change.after));}
   meta.status='applying';meta.reviewHash=reviewHash;this.save(meta);const written=[];
   try{for(const change of snapshot.changes){const target=regular(this.appRoot,change.path);atomic(target,Buffer.from(change.after));written.push(change.path);}meta.status='applied';meta.appliedAt=Date.now();this.save(meta);}
-  catch(error){let restored=true;for(const relative of written.reverse())try{atomic(regular(this.appRoot,relative),fs.readFileSync(regular(backup,relative)));}catch{restored=false;}meta.status=restored?'rolled-back':'applying';this.save(meta);throw Error(restored?'Applying failed; the original files were restored.':'Applying was interrupted. Review the draft and restore its backup before restarting Crew.');}
+  catch(error){let restored=true;for(const relative of written.reverse())try{atomic(regular(this.appRoot,relative),fs.readFileSync(regular(backup,relative)));}catch{restored=false;}meta.status=restored?'rolled-back':'applying';this.save(meta);throw Error(restored?'Applying failed; the original files were restored.':'Applying was interrupted. Review the draft and restore its backup before restarting FOLKLET.');}
   // File application is already committed. A separate Learning write failure
   // must never roll it back or make an already-applied revision eligible again.
   try{this.learning.accept(meta.proposalId);}catch{/* public() reports the persisted review state accurately. */}

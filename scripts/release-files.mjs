@@ -30,7 +30,7 @@ export const sourceFiles = [
   'skills.test.mjs', 'review-ui.test.mjs', 'recall.test.mjs', 'routine-policy.test.mjs',
   'fallback.test.mjs', 'fallback-ui.test.mjs', 'engine-roadmap.test.mjs',
   'integrations.test.mjs', 'integrations-ui.test.mjs', 'notifications.test.mjs', 'app-changes.test.mjs',
-  'Setup.ps1', 'Setup.sh', 'Launch.ps1', 'Start Crew.cmd', 'Connect iPhone.cmd',
+  'Setup.ps1', 'Setup.sh', 'Launch.ps1', 'Start Crew.cmd', 'Start Folklet.cmd', 'Connect iPhone.cmd',
   'scripts/dependencies.json', 'scripts/Dependencies.ps1', 'scripts/Install-Runtime.ps1',
   'scripts/Package.ps1', 'scripts/release-files.mjs',
   'scripts/Install-Platform.mjs', 'scripts/platform-dependencies.json',

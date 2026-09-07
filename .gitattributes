@@ -14,3 +14,12 @@
 *.cmd text eol=crlf
 *.png binary
 *.ico binary
+# These upstream notices have pinned byte hashes; preserve their original line endings.
+runtime/LICENSE.txt -text
+desktop/WebView2-LICENSE.txt -text
+runtime/codex/LICENSE -text
+runtime/codex/NOTICE -text
+runtime/codex/RIPGREP-* -text
+runtime/codex/ZSH-LICENCE -text
+runtime/codex/BUBBLEWRAP-COPYING -text
+runtime/codex/UNIX-SOURCES.md -text

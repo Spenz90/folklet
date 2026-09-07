@@ -6,11 +6,11 @@ import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {AppChanges} from './app-changes.mjs';
 function fixture(t){
- const root=fs.mkdtempSync(path.join(os.tmpdir(),'crew-app-draft-unit-')),app=path.join(root,'application'),data=path.join(root,'data');fs.mkdirSync(app);fs.mkdirSync(data);const files=['app.mjs','app.test.mjs','README.md','icon.bin'];
+ const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'crew-app-draft-unit-'))),app=path.join(root,'application'),data=path.join(root,'data');fs.mkdirSync(app);fs.mkdirSync(data);const files=['app.mjs','app.test.mjs','README.md','icon.bin'];
  fs.writeFileSync(path.join(app,'app.mjs'),'export const value=1;\n');fs.writeFileSync(path.join(app,'README.md'),'Original guide\n');fs.writeFileSync(path.join(app,'icon.bin'),Buffer.from([0,1,2]));fs.writeFileSync(path.join(app,'app.test.mjs'),"import test from 'node:test';import assert from 'node:assert/strict';import {value} from './app.mjs';test('reviewed value',()=>assert.equal(value,2));\n");
  const calls=[],proposal={id:'proposal',botId:'a',kind:'app-change',status:'pending',title:'Improve fixture'},store={db:{tasks:[]},bot(id){if(!['a','b'].includes(id))throw Error('Bot not found');return {id};}},learning={get(id){if(id!=='proposal')throw Error('No proposal');return {...proposal};},accept(id){if(id!=='proposal')throw Error('No proposal');proposal.status='reviewed';return {...proposal};}};
  const manager=new AppChanges({appRoot:app,dataRoot:data,store,learning,allowlist:files,spawnProcess(executable,args,options){calls.push({executable,args,options});return spawn(executable,args,options);}});
- t.after(()=>{manager.close();assert.equal(path.dirname(root),path.resolve(os.tmpdir()));assert.match(path.basename(root),/^crew-app-draft-unit-/);fs.rmSync(root,{recursive:true,force:true});});const draft=()=>manager.create({proposalId:'proposal',botId:'a'});
+ t.after(()=>{manager.close();assert.equal(path.dirname(root),fs.realpathSync(os.tmpdir()));assert.match(path.basename(root),/^crew-app-draft-unit-/);fs.rmSync(root,{recursive:true,force:true});});const draft=()=>manager.create({proposalId:'proposal',botId:'a'});
  return {root,app,data,manager,calls,store,draft};
 }
 test('app drafts copy only approved source and bot edits cannot touch live files or another draft owner',async t=>{
@@ -26,6 +26,17 @@ test('test execution needs explicit consent and an exact checked hash; reviewed 
  const f=fixture(t),draft=f.draft();f.manager.write({id:draft.id,path:'app.mjs',text:'export const value=2;\n'});const revision=f.manager.diff(draft.id).reviewHash;await assert.rejects(f.manager.runTests({id:draft.id,reviewHash:revision,testFiles:['app.test.mjs'],confirmed:true}),/syntax checks/);await f.manager.check(draft.id);
  await assert.rejects(f.manager.runTests({id:draft.id,reviewHash:revision,testFiles:['app.test.mjs']}),/explicitly approve/);await assert.rejects(f.manager.runTests({id:draft.id,reviewHash:'stale',testFiles:['app.test.mjs'],confirmed:true}),/exact draft/);
  const result=await f.manager.runTests({id:draft.id,reviewHash:revision,testFiles:['app.test.mjs'],confirmed:true});assert.equal(result.passed,true,result.output);const execution=f.calls.at(-1);assert.ok(execution.args.includes('--permission'));assert.ok(execution.args.includes('--test-isolation=none'));assert.equal(execution.options.shell,undefined);assert.equal(execution.options.windowsHide,true);assert.equal(execution.options.env.OPENAI_API_KEY,undefined);assert.equal(execution.options.env.NODE_OPTIONS,undefined);assert.ok(execution.options.env.CODEX_HOME.endsWith('.crew-test-data'));
+});
+
+test('parent path aliases use canonical permission roots without allowing linked draft storage',async t=>{
+ const f=fixture(t),actual=path.join(f.root,'actual-parent'),alias=path.join(f.root,'alias-parent');fs.mkdirSync(actual);fs.symlinkSync(actual,alias,'junction');
+ const manager=new AppChanges({appRoot:f.app,dataRoot:path.join(alias,'data'),store:f.store,learning:f.manager.learning,allowlist:f.manager.allowlist,spawnProcess:f.manager.spawnProcess});t.after(()=>manager.close());
+ assert.equal(manager.root,fs.realpathSync(path.join(actual,'data','app-change-drafts')));
+ const draft=manager.create({proposalId:'proposal',botId:'a'});manager.write({id:draft.id,path:'app.mjs',text:'export const value=2;\n'});assert.equal((await manager.check(draft.id)).passed,true);
+ const result=await manager.runTests({id:draft.id,reviewHash:manager.diff(draft.id).reviewHash,testFiles:['app.test.mjs'],confirmed:true});assert.equal(result.passed,true,result.output);
+ const execution=f.calls.at(-1),source=fs.realpathSync(path.join(manager.directory(draft.id),'source'));assert.equal(execution.options.cwd,source);assert.ok(execution.args.includes('--allow-fs-read='+source));assert.ok(execution.args.includes('--allow-fs-write='+source));
+ const linkedData=path.join(f.root,'linked-draft-data');fs.mkdirSync(linkedData);fs.symlinkSync(manager.root,path.join(linkedData,'app-change-drafts'),'junction');
+ assert.throws(()=>new AppChanges({appRoot:f.app,dataRoot:linkedData,store:f.store,learning:f.manager.learning,allowlist:f.manager.allowlist}),/storage cannot be a symbolic link/);
 });
 test('restricted draft tests cannot read files outside the draft or spawn another process',async t=>{
  const f=fixture(t),sentinel=path.join(f.root,'outside-fixture.txt');fs.writeFileSync(sentinel,'read boundary fixture');fs.writeFileSync(path.join(f.app,'app.test.mjs'),"import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {spawnSync} from 'node:child_process';test('restrictions',()=>{assert.throws(()=>fs.readFileSync("+JSON.stringify(sentinel)+"),{code:'ERR_ACCESS_DENIED'});assert.throws(()=>spawnSync(process.execPath,['--version']),{code:'ERR_ACCESS_DENIED'});});");

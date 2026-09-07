@@ -30,7 +30,7 @@ test('skill JSON import/export carries only instructions and always creates a pe
  const {skills,bot,store}=fixture(t),task=store.enqueue(bot.id,'Review'),first=skills.propose({...example,source:{botId:bot.id,taskId:task.id}});skills.accept(first.skillId,first.revisionId);skills.setEnabled(first.skillId,bot.id,true);
  const exported=skills.exportSkill(first.skillId);assert.deepEqual(exported,{format:'crew-instruction-skill',version:1,skill:example});assert.equal(JSON.stringify(exported).includes(bot.id),false);
  const imported=skills.importSkill(JSON.stringify(exported));assert.equal(imported.status,'pending');assert.notEqual(imported.skillId,first.skillId);assert.deepEqual(skills.get(imported.skillId).enabledBotIds,[]);
- for(const invalid of [{...exported,files:[{path:'app.mjs',text:'run'}]},{...exported,skill:{...example,command:'run'}},{...exported,enabled:true}])assert.throws(()=>skills.importSkill(invalid),/only Crew instruction/);
+ for(const invalid of [{...exported,files:[{path:'app.mjs',text:'run'}]},{...exported,skill:{...example,command:'run'}},{...exported,enabled:true}])assert.throws(()=>skills.importSkill(invalid),/only FOLKLET instruction/);
  assert.throws(()=>skills.importSkill('not json'),/valid skill/);assert.throws(()=>skills.importSkill(' '.repeat(128001)),/128 KB/);
 });
 test('skill sources validate ownership and generated links cannot contain supplied external URLs',t=>{

@@ -53,8 +53,8 @@ test('Windows packaging rejects linked output ancestors and checksum paths befor
     const target=path.join(root,'target'),link=path.join(root,'linked-output');fs.mkdirSync(target);fs.symlinkSync(target,link,'junction');
     const check=output=>{const result=spawnSync('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',packageScript,'-OutputDirectory',output],{encoding:'utf8',windowsHide:true,timeout:15000});assert.equal(result.error,undefined);assert.notEqual(result.status,0);assert.match(result.stderr,/Release output cannot contain a link/);};
     check(path.join(link,'new-folder'));assert.equal(fs.existsSync(path.join(target,'new-folder')),false);
-    const output=path.join(root,'output');fs.mkdirSync(output);fs.symlinkSync(target,path.join(output,'Crew-Source.zip.sha256'),'junction');
-    check(output);assert.equal(fs.existsSync(path.join(output,'Crew-Source.zip')),false);assert.deepEqual(fs.readdirSync(target),[]);
+    const output=path.join(root,'output');fs.mkdirSync(output);fs.symlinkSync(target,path.join(output,'Folklet-Source.zip.sha256'),'junction');
+    check(output);assert.equal(fs.existsSync(path.join(output,'Folklet-Source.zip')),false);assert.deepEqual(fs.readdirSync(target),[]);
   } finally { const resolved=path.resolve(root);assert.equal(path.dirname(resolved),path.resolve(os.tmpdir()));assert.match(path.basename(resolved),/^crew-release-/);fs.rmSync(resolved,{recursive:true,force:true}); }
 });
 
@@ -64,12 +64,12 @@ test('Windows PowerShell 5.1 source packaging writes one entry per approved file
     const script=fileURLToPath(new URL('./scripts/Package.ps1',import.meta.url));
     const result=spawnSync('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',script,'-Kind','Source','-OutputDirectory',output],{encoding:'utf8',windowsHide:true,timeout:30000});
     assert.equal(result.error,undefined);assert.equal(result.status,0,result.stderr);
-    const archive=path.join(output,'Crew-Source.zip');
+    const archive=path.join(output,'Folklet-Source.zip');
     const names=await new Promise((resolve,reject)=>yauzl.open(archive,{lazyEntries:true},(error,zip)=>{
       if(error){reject(error);return;}const files=[];
       zip.on('entry',entry=>{files.push(entry.fileName);zip.readEntry();});zip.once('end',()=>resolve(files));zip.once('error',reject);zip.readEntry();
     }));
-    assert.deepEqual(names.sort(),sourceFiles.map(file=>'Crew/'+file).sort());
+    assert.deepEqual(names.sort(),sourceFiles.map(file=>'Folklet/'+file).sort());
     assert.equal(new Set(names).size,names.length);assert.ok(fs.statSync(archive+'.sha256').size>64);
   }finally{const resolved=path.resolve(output);assert.equal(path.dirname(resolved),path.resolve(os.tmpdir()));assert.match(path.basename(resolved),/^crew-release-/);fs.rmSync(resolved,{recursive:true,force:true});}
 });

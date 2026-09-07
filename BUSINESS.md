@@ -1,12 +1,12 @@
 # Free software and a possible hosted service
 
-Crew's local application and source code are free under the MIT license. Anyone can use, modify and share the code subject to that license. Model accounts, optional hosting, Tailscale plans and separately installed software keep their own terms and costs.
+Folklet's local application and source code are free under the MIT license. Anyone can use, modify and share the code subject to that license. Model accounts, optional hosting, Tailscale plans and separately installed software keep their own terms and costs.
 
-There is no Crew checkout, subscription backend, purchased server, managed hosting service or uptime guarantee in this preview. The cloud screen links to third-party providers and explains how to host your own private instance. Clicking those links does not buy anything.
+There is no Folklet checkout, subscription backend, purchased server, managed hosting service or uptime guarantee in this preview. The cloud screen links to third-party providers and explains how to host your own private instance. Clicking those links does not buy anything.
 
 ## A practical future offering
 
-A possible business is paid setup and maintenance for a dedicated private Crew instance. Keep the local edition free. Let customers bring their own API account, retain ownership of their data and export their workspace.
+A possible business is paid setup and maintenance for a dedicated private Folklet instance. Keep the local edition free. Let customers bring their own API account, retain ownership of their data and export their workspace.
 
 An **illustrative US$19–29 per month** could be tested for a modest managed-hosting tier with a clearly stated resource allowance. That is a product hypothesis, not a live price, a promise of profit, or a quote for a particular server. Model usage would be separate. Heavy browser work, additional resources and support would need different economics.
 
@@ -20,6 +20,6 @@ Before quoting a real plan, measure CPU/RAM/storage use, concurrent browser dema
 - Appropriate model-provider and infrastructure terms reviewed for the actual service offered.
 - Native platform tests, signing and meaningful release support for any desktop edition promoted as stable.
 
-An accepted app improvement proposal in Crew is a review record, not an automatically shipped product change. A managed operator would still review, test and approve code updates through a normal release process.
+An accepted app improvement proposal in Folklet is a review record, not an automatically shipped product change. A managed operator would still review, test and approve code updates through a normal release process.
 
 The [hosting guide](HOSTING.md) is the usable self-hosted option today. It has no commercial checkout or automatic provisioning.

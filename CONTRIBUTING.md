@@ -1,8 +1,8 @@
 # Contributing
 
-Start with [README.md](README.md) and [QUICKSTART.md](QUICKSTART.md). Crew's interface is plain HTML/CSS/JavaScript, its host uses Node, the Windows window uses WebView2, and the Mac/Linux preview uses Electron.
+Start with [README.md](README.md) and [QUICKSTART.md](QUICKSTART.md). Folklet's interface is plain HTML/CSS/JavaScript, its host uses Node, the Windows window uses WebView2, and the Mac/Linux preview uses Electron.
 
-Use a new clone or source archive, then run Setup.ps1 on Windows or Setup.sh on a supported Unix host. Windows setup also compiles the optional native helper. The Mac helper must be compiled on a Mac; see [native/README.md](native/README.md). Avoid running development checks against a personal Crew installation.
+Use a new clone or source archive, then run Setup.ps1 on Windows or Setup.sh on a supported Unix host. Windows setup also compiles the optional native helper. The Mac helper must be compiled on a Mac; see [native/README.md](native/README.md). Avoid running development checks against a personal Folklet installation.
 
 ## Checks
 
@@ -26,7 +26,7 @@ Add focused regressions for task lifecycle, cancellation, approval, provider err
 
 ## Review and releases
 
-Keep pull requests focused: describe the problem, resulting behavior and what actually ran. Include only sample-data screenshots. Crew contributions use the MIT license; preserve component notices and attribution.
+Keep pull requests focused: describe the problem, resulting behavior and what actually ran. Include only sample-data screenshots. Folklet contributions use the MIT license; preserve component notices and attribution.
 
 Dependencies are pinned in scripts/dependencies.json, scripts/platform-dependencies.json, scripts/electron-releases.json and package-lock.json. Runtime receipts record provenance. Updates need matching pins, hashes, license review and checks on the target architecture. A passing mock test is not a successful provider connection or platform launch.
 

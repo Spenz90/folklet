@@ -64,11 +64,11 @@ function verifyNativeHost(target){
  if(target.os!==process.platform||target.arch!==process.arch)throw Error('Foreign runtimes may be staged, but cannot be executed on this host.');
  if(process.platform==='darwin'){
   const version=execFileSync('/usr/bin/sw_vers',['-productVersion'],{encoding:'utf8'}).trim();
-  if(Number(version.split('.')[0])<15)throw Error('This Crew runtime requires macOS 15 or later.');
+  if(Number(version.split('.')[0])<15)throw Error('This Folklet runtime requires macOS 15 or later.');
  }else if(process.platform==='linux'){
   const glibc=process.report?.getReport().header.glibcVersionRuntime;
   const [major,minor]=(glibc||'0.0').split('.').map(Number);
-  if(major<2||(major===2&&minor<38))throw Error('This Crew runtime needs a desktop Linux distribution with glibc 2.38 or later (for example Ubuntu 24.04 or Debian 13).');
+  if(major<2||(major===2&&minor<38))throw Error('This Folklet runtime needs a desktop Linux distribution with glibc 2.38 or later (for example Ubuntu 24.04 or Debian 13).');
  }
 }
 

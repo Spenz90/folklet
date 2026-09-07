@@ -5,7 +5,17 @@ import {createHash} from 'node:crypto';
 import {collectReleaseFiles} from './release-files.mjs';
 import {verifyCorrespondingSource,correspondingSource} from './Prepare-Corresponding-Source.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-export const desktopArchives={'win32-x64':'Crew-Windows.zip','darwin-arm64':'Crew-Mac-AppleSilicon.zip','darwin-x64':'Crew-Mac-Intel.zip','linux-x64':'Crew-Linux-x64.zip'};
+export const desktopArchives={'win32-x64':'Folklet-Windows.zip','darwin-arm64':'Folklet-Mac-AppleSilicon.zip','darwin-x64':'Folklet-Mac-Intel.zip','linux-x64':'Folklet-Linux-x64.zip'};
+export function checkPinnedRuntimeNotices(sourceRoot=root){
+ const unix=JSON.parse(fs.readFileSync(path.join(sourceRoot,'scripts/platform-dependencies.json'))),windows=JSON.parse(fs.readFileSync(path.join(sourceRoot,'runtime/codex/runtime-source.json')));
+ const checked=new Set();
+ for(const item of [...unix.notices,...windows.licenseFiles]){
+  const file=path.join(sourceRoot,'runtime/codex',item.file),actual=createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+  if(actual!==item.sha256)throw Error('Pinned runtime notice differs: '+item.file+'. Restore its original bytes; Git must not normalize its line endings.');
+  checked.add(item.file);
+ }
+ return checked.size;
+}
 export function validateSmokeEvidence(report,{platform,version,sha256,channel='preview'}={}){
  if(!['preview','stable'].includes(channel))throw Error('Choose preview or stable.');
  if(report?.schemaVersion!==1||report.passed!==true||report.platform!==platform||report.version!==version||report.archive!==desktopArchives[platform]||report.archiveSha256!==sha256||report.hostStarted!==true||report.workspaceRendered!==true||report.isolatedData!==true||report.ownedProcessesClosed!==true)throw Error('Missing matching packaged startup evidence for '+platform+'.');
@@ -17,6 +27,7 @@ export function validateSmokeEvidence(report,{platform,version,sha256,channel='p
 }
 export function checkDependencyNotices(sourceRoot=root){
  collectReleaseFiles(sourceRoot,'Source');
+ checkPinnedRuntimeNotices(sourceRoot);
  const pkg=JSON.parse(fs.readFileSync(path.join(sourceRoot,'package.json'))),lock=JSON.parse(fs.readFileSync(path.join(sourceRoot,'package-lock.json')));
  if(pkg.version!==lock.version||pkg.version!==lock.packages[''].version)throw Error('Package versions differ.');
  for(const [name,item] of Object.entries(lock.packages)){

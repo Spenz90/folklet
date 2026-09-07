@@ -4,7 +4,7 @@ The repository contains source and small assets. **Desktop ZIPs belong in GitHub
 
 ## Before publishing
 
-1. Work from a clean source checkout. On Windows, run `Setup.ps1`; on macOS/Linux, run `sh Setup.sh --skip-browser` to prepare the runtime and locked packages. Quit an existing Crew installation before rebuilding it. Keep downloaded binaries, caches, data and profiles ignored.
+1. Work from a clean source checkout. On Windows, run `Setup.ps1`; on macOS/Linux, run `sh Setup.sh --skip-browser` to prepare the runtime and locked packages. Quit an existing Folklet installation before rebuilding it. Keep downloaded binaries, caches, data and profiles ignored.
 2. Run the automated checks and inspect desktop/phone views using sample data. Update [RELEASE-CHECKS.md](RELEASE-CHECKS.md) with actual results and remaining limitations.
 3. Review `LICENSE`, the public README and third-party notices. Keep dependency notices intact.
 4. Build the source archive and each desktop target below. Run `npm test` if Node/npm are installed, or use the bundled Node commands shown below; both include the Electron shell tests.
@@ -23,7 +23,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Package.ps1 -Kind 
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Package.ps1 -Kind Windows
 ```
 
-The script creates `dist/Crew-Source.zip`, `dist/Crew-Windows.zip` and adjacent `.sha256` files. It selects known project files, refuses links/private paths and checks bundled runtime hashes. The source archive contains no dependencies or executable binaries; setup downloads dependencies and builds the wrappers. The Windows archive includes the runtime, wrapper and native control helper. The optional Tailscale installer is not in public archives; users install it from its official site or request it during source setup.
+The script creates `dist/Folklet-Source.zip`, `dist/Folklet-Windows.zip` and adjacent `.sha256` files. It selects known project files, refuses links/private paths and checks bundled runtime hashes. The source archive contains no dependencies or executable binaries; setup downloads dependencies and builds the wrappers. The Windows archive includes the runtime, wrapper and native control helper. The optional Tailscale installer is not in public archives; users install it from its official site or request it during source setup.
 
 `Setup.ps1` builds the Windows native helper even with `-SkipDesktop`. To build only the wrapper, use `desktop/Build.ps1`; to build only the native helper, use `native/Build-Windows.ps1`. For an isolated rebuild while the original app executable is in use, `desktop/Build.ps1 -OutputDirectory <staging-folder>` and `scripts/Package.ps1 -Kind Windows -DesktopExecutable <staging-folder>/Crew.exe` select the rebuilt executable explicitly. Do not change running application files.
 
@@ -38,7 +38,7 @@ The archive builder runs with Node 24 on any supported host and stages verified 
 ./runtime/node scripts/Build-Unix.mjs --platform linux-x64
 ```
 
-This produces `Crew-Mac-AppleSilicon.zip`, `Crew-Mac-Intel.zip` and `Crew-Linux-x64.zip` in `dist`, with checksums. On Windows, substitute `.\runtime\node.exe` for `./runtime/node`. `--cache <folder>`, `--runtime-root <staged-root>`, `--output <folder>` and `--offline` support reuse of verified downloads and staged runtimes. To prepare runtimes separately:
+This produces `Folklet-Mac-AppleSilicon.zip`, `Folklet-Mac-Intel.zip` and `Folklet-Linux-x64.zip` in `dist`, with checksums. On Windows, substitute `.\runtime\node.exe` for `./runtime/node`. `--cache <folder>`, `--runtime-root <staged-root>`, `--output <folder>` and `--offline` support reuse of verified downloads and staged runtimes. To prepare runtimes separately:
 
 ```sh
 ./runtime/node scripts/Install-Platform.mjs --platform darwin-arm64 --root .build/darwin-arm64 --cache .cache/crew-setup
@@ -52,10 +52,10 @@ Build the optional Mac native control helper **on a Mac with Apple's command-lin
 ```sh
 sh native/Build-macOS.sh --arch arm64
 ./runtime/node scripts/Build-Unix.mjs --platform darwin-arm64
-./runtime/node scripts/Sign-Mac.mjs --archive dist/Crew-Mac-AppleSilicon.zip --platform darwin-arm64
+./runtime/node scripts/Sign-Mac.mjs --archive dist/Folklet-Mac-AppleSilicon.zip --platform darwin-arm64
 ```
 
-Use `x64`, `darwin-x64` and `Crew-Mac-Intel.zip` for Intel. The builder automatically includes `native/macos-control-<arch>` when present, or accepts `--native-helper <file>`. Its Mach-O header must match the target architecture. Without that compiled helper, browser tools still work, but native Mac control is unavailable.
+Use `x64`, `darwin-x64` and `Folklet-Mac-Intel.zip` for Intel. The builder automatically includes `native/macos-control-<arch>` when present, or accepts `--native-helper <file>`. Its Mach-O header must match the target architecture. Without that compiled helper, browser tools still work, but native Mac control is unavailable.
 
 `Sign-Mac.mjs` uses Apple `codesign` on the assembled application and verifies a local **ad-hoc signature**. It preserves pinned runtime bytes and regenerates the archive checksum. It does not use an Apple account, Developer ID certificate or notarization service. Windows-built Mac previews have not passed this native signing step. Before describing Mac builds as ready for general distribution, run the native build/signing checks and test them on both Mac architectures; Developer ID signing and notarization remain separate publication work. Do not tell users to disable Gatekeeper or other system protection.
 
@@ -63,7 +63,7 @@ Use `x64`, `darwin-x64` and `Crew-Mac-Intel.zip` for Intel. The builder automati
 
 The Checks workflow is configured to run tests on Windows x64, Apple Silicon, Intel Mac and Linux x64. It builds Windows helpers, compiles each Mac helper, checks bundled Unix executables with `--version`, assembles desktop archives and performs the Mac ad-hoc signing step. Its action references are pinned to verified official commits. [Runner labels](https://github.com/actions/runner-images#available-images) can change, so review them when updating CI. No job signs in to a model provider, invokes native control, or publishes a release. Check the actual workflow result after uploading; local checks do not establish a GitHub Actions pass.
 
-Do not use a generic “zip this folder” action on a working Crew installation. It can contain chats, browser sessions, saved tokens, private app drafts and backups even when its source code is clean. Add new public source/assets to `scripts/release-files.mjs` when needed. Review exact archive membership against that list and verify that every source file matches the intended release revision.
+Do not use a generic “zip this folder” action on a working Folklet installation. It can contain chats, browser sessions, saved tokens, private app drafts and backups even when its source code is clean. Add new public source/assets to `scripts/release-files.mjs` when needed. Review exact archive membership against that list and verify that every source file matches the intended release revision.
 
 The 0.6.1 Checks workflow also launches the extracted desktop with an empty, isolated workspace on its matching runner. It records the rendered workspace, startup/shutdown result and exact archive hash, retains evidence and checked downloads as temporary workflow artifacts, and checks the locked npm dependencies against the advisory registry. An artifact is available only after its job passes. Workflow artifacts are not a published GitHub Release.
 
@@ -81,14 +81,14 @@ For Linux binaries, prepare the pinned corresponding-source companion before dis
 node scripts/Prepare-Corresponding-Source.mjs
 ```
 
-Publish `Crew-Linux-Corresponding-Source.tar.gz`, its checksum and receipt beside the Linux ZIP. The Linux release gate verifies this companion. Keep its upstream notices and build instructions intact; do not substitute a nearby upstream revision for the source recorded for the bundled helper.
+Publish `Folklet-Linux-Corresponding-Source.tar.gz`, its checksum and receipt beside the Linux ZIP. The Linux release gate verifies this companion. Keep its upstream notices and build instructions intact; do not substitute a nearby upstream revision for the source recorded for the bundled helper.
 
 ## Uploading to GitHub
 
 1. Create a repository and upload/commit the **contents of the clean source folder**, including `.github`, `.gitignore` and `.gitattributes`. If using the prepared `crew-github` folder, use it as the repository root. Do not upload its surrounding working directory or the live `crew` installation.
 2. Let the Checks workflow run. Enable GitHub private vulnerability reporting so people can report issues privately.
 3. Create a tag and GitHub Release for the tested version. Mark this initial release as a **pre-release** while device testing remains outstanding.
-4. Attach each tested desktop ZIP and its checksum. Keep untested Mac/Linux builds clearly labeled as previews. You may also attach `Crew-Source.zip` and its checksum; GitHub generates source archives from tags.
+4. Attach each tested desktop ZIP and its checksum. Keep untested Mac/Linux builds clearly labeled as previews. You may also attach `Folklet-Source.zip` and its checksum; GitHub generates source archives from tags.
 5. Copy the public changelog into the release notes and retain the stated requirements and limitations. Check that downloads work from a signed-out browser.
 
 These scripts build local files only. They do not create a repository, push commits, publish a release or use GitHub credentials. See [GitHub release limits](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases) before adding large assets.
@@ -96,9 +96,9 @@ These scripts build local files only. They do not create a repository, push comm
 ## Verify a download
 
 ```powershell
-Get-FileHash .\Crew-Windows.zip -Algorithm SHA256
+Get-FileHash .\Folklet-Windows.zip -Algorithm SHA256
 ```
 
-Compare the value with `Crew-Windows.zip.sha256` from the same trusted release. A checksum identifies matching bytes; publisher signing is a separate future release task.
+Compare the value with `Folklet-Windows.zip.sha256` from the same trusted release. A checksum identifies matching bytes; publisher signing is a separate future release task.
 
 On macOS use `shasum -a 256 <archive>`; on Linux use `sha256sum <archive>`. Compare against the matching `.sha256` file.

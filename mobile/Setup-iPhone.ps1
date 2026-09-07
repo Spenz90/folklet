@@ -6,11 +6,11 @@ if (-not $crewAdmin) {
     exit
 }
 try {
-    Write-Host 'Connect Crew to your iPhone' -ForegroundColor Cyan
-    Write-Host 'This creates a private Tailscale connection. Keep Crew and this PC running.'
+    Write-Host 'Connect FOLKLET to your iPhone' -ForegroundColor Cyan
+    Write-Host 'This creates a private Tailscale connection. Keep FOLKLET and this PC running.'
     $crewPage = Invoke-WebRequest 'http://127.0.0.1:4318/' -UseBasicParsing -TimeoutSec 5
     $crewTokenMatch = [regex]::Match($crewPage.Content,"window\.CREW_TOKEN='([a-f0-9]{64})'")
-    if (-not $crewTokenMatch.Success) { throw 'Open Crew on this PC, then run this setup again.' }
+    if (-not $crewTokenMatch.Success) { throw 'Open FOLKLET on this PC, then run this setup again.' }
     $crewLocalHeaders = @{'X-Crew-Token'=$crewTokenMatch.Groups[1].Value}
     $null = Invoke-RestMethod 'http://127.0.0.1:4318/api/mobile-status' -Headers $crewLocalHeaders -TimeoutSec 5
     $crewTailscale = Join-Path $env:ProgramFiles 'Tailscale\tailscale.exe'
@@ -45,13 +45,13 @@ try {
     if ($crewServe.Web -and $crewServe.Web.PSObject.Properties[$crewEndpoint]) {
         $crewHandlers = $crewServe.Web.PSObject.Properties[$crewEndpoint].Value.Handlers
         $crewRootHandler = if ($crewHandlers) { $crewHandlers.PSObject.Properties['/'] } else { $null }
-        if (-not $crewRootHandler -or @($crewHandlers.PSObject.Properties).Count -ne 1 -or $crewRootHandler.Value.Proxy -cne 'http://127.0.0.1:4320' -or @($crewRootHandler.Value.PSObject.Properties).Count -ne 1) { throw 'Tailscale port 8443 already serves another app. Crew has left that configuration unchanged.' }
+        if (-not $crewRootHandler -or @($crewHandlers.PSObject.Properties).Count -ne 1 -or $crewRootHandler.Value.Proxy -cne 'http://127.0.0.1:4320' -or @($crewRootHandler.Value.PSObject.Properties).Count -ne 1) { throw 'Tailscale port 8443 already serves another app. FOLKLET has left that configuration unchanged.' }
     }
     if ($crewServe.TCP -and $crewServe.TCP.PSObject.Properties['8443']) {
         $crewTcp = $crewServe.TCP.PSObject.Properties['8443'].Value
-        if (-not $crewTcp.HTTPS) { throw 'Tailscale port 8443 is already in use by a TCP service. Crew left it unchanged.' }
+        if (-not $crewTcp.HTTPS) { throw 'Tailscale port 8443 is already in use by a TCP service. FOLKLET left it unchanged.' }
     }
-    if ($crewServe.AllowFunnel -and $crewServe.AllowFunnel.PSObject.Properties[$crewEndpoint] -and $crewServe.AllowFunnel.PSObject.Properties[$crewEndpoint].Value) { throw 'Port 8443 is configured for public Funnel. Disable that endpoint before using it for private Crew access.' }
+    if ($crewServe.AllowFunnel -and $crewServe.AllowFunnel.PSObject.Properties[$crewEndpoint] -and $crewServe.AllowFunnel.PSObject.Properties[$crewEndpoint].Value) { throw 'Port 8443 is configured for public Funnel. Disable that endpoint before using it for private FOLKLET access.' }
     Write-Host 'Tailscale may display a link to enable HTTPS. Open it and allow HTTPS when prompted.'
     & $crewTailscale serve --bg --https=8443 http://127.0.0.1:4320
     if ($LASTEXITCODE -ne 0) { throw 'Enable HTTPS using the Tailscale link, then run this setup again.' }
@@ -59,10 +59,10 @@ try {
     $crewPayload = @{origin=$crewOrigin} | ConvertTo-Json
     $null = Invoke-RestMethod 'http://127.0.0.1:4318/api/mobile-configure' -Method Post -ContentType 'application/json' -Headers $crewLocalHeaders -Body $crewPayload
     Write-Host ''
-    Write-Host 'Your private Crew address:' -ForegroundColor Green
+    Write-Host 'Your private FOLKLET address:' -ForegroundColor Green
     Write-Host $crewOrigin
     Write-Host 'On iPhone: install Tailscale, sign in to the same account, and connect.'
-    Write-Host 'Then open this address in Safari. In Crew on the PC, choose My workspace > Connect iPhone > Create pairing code.'
+    Write-Host 'Then open this address in Safari. In FOLKLET on the PC, choose My workspace > Connect iPhone > Create pairing code.'
     Write-Host 'Once paired in Safari, choose Share > Add to Home Screen.'
 } catch {
     Write-Host $_.Exception.Message -ForegroundColor Yellow

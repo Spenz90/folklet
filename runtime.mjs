@@ -5,14 +5,14 @@ import {fileURLToPath} from 'node:url';
 const appRoot=path.dirname(fileURLToPath(import.meta.url));
 const isFile=file=>{try{return fs.statSync(file,{throwIfNoEntry:false})?.isFile()===true;}catch{return false;}};
 export function resolveCrewEngine({root=appRoot,env=process.env,platform=process.platform}={}){
- if(!['win32','darwin','linux'].includes(platform))throw Error('Crew supports Windows, macOS, and Linux.');
+ if(!['win32','darwin','linux'].includes(platform))throw Error('FOLKLET supports Windows, macOS, and Linux.');
  const directory=path.join(root,'runtime','codex');
  const candidates=platform==='win32'?[path.join(directory,'codex.exe')]:[path.join(directory,'bin','codex'),path.join(directory,'codex')];
  const executable=candidates.find(isFile);
  if(executable)return executable;
  const override=env.CREW_CODEX_OVERRIDE;
  if(override&&path.isAbsolute(override)&&isFile(override))return override;
- throw Error('Crew’s bundled engine is missing. Extract the complete Crew package again.');
+ throw Error('FOLKLET’s bundled engine is missing. Extract the complete FOLKLET package again.');
 }
 
 export function crewEngineEnvironment(executable,{env=process.env,platform=process.platform}={}){

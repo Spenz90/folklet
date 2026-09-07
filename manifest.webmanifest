@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Crew",
-  "short_name": "Crew",
-  "description": "Your Crew in your pocket: bots, conversations, and group chats connected to your PC.",
+  "name": "FOLKLET",
+  "short_name": "FOLKLET",
+  "description": "A little team of helpers, on your computer and phone.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

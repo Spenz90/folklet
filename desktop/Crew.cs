@@ -17,10 +17,10 @@ using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
-[assembly: AssemblyTitle("Crew")]
+[assembly: AssemblyTitle("Folklet")]
 [assembly: AssemblyDescription("Your personal ChatGPT-powered workspace")]
-[assembly: AssemblyCompany("Crew Local")]
-[assembly: AssemblyProduct("Crew")]
+[assembly: AssemblyCompany("Folklet Local")]
+[assembly: AssemblyProduct("Folklet")]
 [assembly: AssemblyVersion("0.6.1.0")]
 [assembly: AssemblyFileVersion("0.6.1.0")]
 
@@ -98,13 +98,13 @@ namespace CrewDesktop
                 string[] blocked = { "https://example.com/", "http://127.0.0.1:4319/", "http://localhost:4318/", "http://127.0.0.1.evil.test:4318/", "http://user@127.0.0.1:4318/", "file:///C:/Windows/win.ini", "javascript:alert(1)", "data:text/html,test", "blob:https://example.com/test", "https://127.0.0.1:4318/" };
                 foreach (string url in allowed) if (!NavigationPolicy.IsCrewResource(url)) throw new Exception("Allowed URL rejected: " + url);
                 foreach (string url in blocked) if (NavigationPolicy.IsCrewResource(url)) throw new Exception("Blocked URL accepted: " + url);
-                string fixture = "<title>Crew</title><div id=\"app\"></div><script>window.CREW_TOKEN='" + new string('a', 64) + "';</script><script type=\"module\" src=\"/app.js\"></script>";
-                if (!ServerBootstrap.IsCrewHtml(fixture) || ServerBootstrap.IsCrewHtml("<title>Crew</title>Not the app")) throw new Exception("Crew identity check failed");
+                string fixture = "<title>FOLKLET</title><div id=\"app\"></div><script>window.CREW_TOKEN='" + new string('a', 64) + "';</script><script type=\"module\" src=\"/app.js\"></script>";
+                if (!ServerBootstrap.IsCrewHtml(fixture) || ServerBootstrap.IsCrewHtml("<title>FOLKLET</title>Not the app")) throw new Exception("Folklet identity check failed");
                 string runtime = CoreWebView2Environment.GetAvailableBrowserVersionString();
                 string node = ServerBootstrap.FindNode();
-                if (node == null) throw new FileNotFoundException("Crew's Node runtime is missing. Run Setup.ps1 or restore the complete package.");
+                if (node == null) throw new FileNotFoundException("Folklet's Node runtime is missing. Run Setup.ps1 or restore the complete package.");
                 string codex = ServerBootstrap.FindCodex(), bundledCodex = Path.Combine(CrewRoot, "runtime", "codex", "codex.exe");
-                if (codex == null) throw new FileNotFoundException("Crew's bundled engine is missing. Restore the complete Crew package, including runtime/codex.");
+                if (codex == null) throw new FileNotFoundException("Folklet's bundled engine is missing. Restore the complete Folklet package, including runtime/codex.");
                 bool bundledEngine = String.Equals(codex, bundledCodex, StringComparison.OrdinalIgnoreCase);
                 if (File.Exists(bundledCodex) && !bundledEngine) throw new Exception("The packaged Codex engine must take precedence over developer or installed copies.");
                 bool? listener = ServerBootstrap.HasListener(); Stopwatch probeTime = Stopwatch.StartNew(); ServerState serverState = ServerBootstrap.Probe(); probeTime.Stop();
@@ -162,7 +162,7 @@ namespace CrewDesktop
 
         internal static bool IsCrewHtml(string html)
         {
-            return html.IndexOf("<title>Crew</title>", StringComparison.OrdinalIgnoreCase) >= 0
+            return (html.IndexOf("<title>FOLKLET</title>", StringComparison.OrdinalIgnoreCase) >= 0 || html.IndexOf("<title>Crew</title>", StringComparison.OrdinalIgnoreCase) >= 0)
                 && html.IndexOf("id=\"app\"", StringComparison.Ordinal) >= 0
                 && html.IndexOf("src=\"/app.js\"", StringComparison.Ordinal) >= 0
                 && Regex.IsMatch(html, "window\\.CREW_TOKEN\\s*=\\s*['\"][a-f0-9]{64}['\"]", RegexOptions.IgnoreCase);
@@ -197,7 +197,7 @@ namespace CrewDesktop
             // identifies the cold-start case before any HTTP request is made.
             if (HasListener() == false) return ServerState.Unavailable;
             // Version 4 exposes an explicit identity endpoint. The HTML check
-            // below remains compatible with an already-running Crew 3 server.
+            // below remains compatible with an already-running Folklet 3 server.
             if (ReadHealth() != null) return ServerState.Crew;
             try
             {
@@ -226,7 +226,7 @@ namespace CrewDesktop
         internal static void Shutdown()
         {
             if (Probe() == ServerState.Unavailable) return;
-            if (ReadHealth() == null) throw new InvalidOperationException("This server does not support desktop shutdown. Reopen the updated Crew app first. The background server is still running.");
+            if (ReadHealth() == null) throw new InvalidOperationException("This server does not support desktop shutdown. Reopen the updated Folklet app first. The background server is still running.");
             string token;
             HttpWebRequest pageRequest = (HttpWebRequest)WebRequest.Create(Program.HomeUrl);
             pageRequest.Proxy = null; pageRequest.AllowAutoRedirect = false; pageRequest.Timeout = 3000; pageRequest.ReadWriteTimeout = 3000;
@@ -235,7 +235,7 @@ namespace CrewDesktop
             {
                 char[] buffer = new char[262144]; int count = reader.ReadBlock(buffer, 0, buffer.Length);
                 string html = new string(buffer, 0, count);
-                if (response.StatusCode != HttpStatusCode.OK || !ServerBootstrap.IsCrewHtml(html)) throw new InvalidOperationException("The local server did not return the Crew app. No shutdown was sent.");
+                if (response.StatusCode != HttpStatusCode.OK || !ServerBootstrap.IsCrewHtml(html)) throw new InvalidOperationException("The local server did not return the Folklet app. No shutdown was sent.");
                 token = Regex.Match(html, "window\\.CREW_TOKEN\\s*=\\s*['\"]([a-f0-9]{64})['\"]", RegexOptions.IgnoreCase).Groups[1].Value;
             }
             HttpWebRequest shutdown = (HttpWebRequest)WebRequest.Create(Program.HomeUrl + "api/shutdown");
@@ -288,13 +288,13 @@ namespace CrewDesktop
             Stopwatch waiting = Stopwatch.StartNew();
             while (state == ServerState.Pending && waiting.ElapsedMilliseconds < 20000) { Thread.Sleep(300); state = Probe(); }
             if (state == ServerState.Crew) return "reused";
-            if (state == ServerState.Occupied) throw new InvalidOperationException("Port 4318 is already in use or did not return the Crew app. Close the other service, then choose Retry.");
+            if (state == ServerState.Occupied) throw new InvalidOperationException("Port 4318 is already in use or did not return the Folklet app. Close the other service, then choose Retry.");
             if (state == ServerState.Pending) throw new TimeoutException("A local service is still starting or stopping on port 4318. No second server was started. Choose Retry in a moment.");
-            if (existingOnly) throw new InvalidOperationException("The smoke test requires an already-running Crew server on port 4318.");
+            if (existingOnly) throw new InvalidOperationException("The smoke test requires an already-running Folklet server on port 4318.");
             string node = FindNode(), codex = FindCodex(), server = Path.Combine(Program.CrewRoot, "server.mjs");
-            if (node == null) throw new FileNotFoundException("Crew's Node runtime is missing. Keep the runtime folder next to the Crew app files.");
-            if (codex == null) throw new FileNotFoundException("Crew's bundled engine is missing. Restore the complete Crew package, including runtime/codex, then choose Retry.");
-            if (!File.Exists(server)) throw new FileNotFoundException("Crew's server files are missing. Keep this desktop folder inside the complete Crew folder.");
+            if (node == null) throw new FileNotFoundException("Folklet's Node runtime is missing. Keep the runtime folder next to the Folklet app files.");
+            if (codex == null) throw new FileNotFoundException("Folklet's bundled engine is missing. Restore the complete Folklet package, including runtime/codex, then choose Retry.");
+            if (!File.Exists(server)) throw new FileNotFoundException("Folklet's server files are missing. Keep this desktop folder inside the complete Folklet folder.");
             ProcessStartInfo start = new ProcessStartInfo(node, "\"" + server + "\"");
             start.WorkingDirectory = Program.CrewRoot;
             start.UseShellExecute = false; start.CreateNoWindow = true; start.WindowStyle = ProcessWindowStyle.Hidden;
@@ -310,12 +310,12 @@ namespace CrewDesktop
                 {
                     state = Probe();
                     if (state == ServerState.Crew) return "started";
-                    if (process.HasExited) throw new InvalidOperationException("Crew's background server exited (code " + process.ExitCode + "). Check that the complete app and its dependencies are present.");
-                    if (state == ServerState.Occupied) throw new InvalidOperationException("Port 4318 did not return the Crew app after startup.");
+                    if (process.HasExited) throw new InvalidOperationException("Folklet's background server exited (code " + process.ExitCode + "). Check that the complete app and its dependencies are present.");
+                    if (state == ServerState.Occupied) throw new InvalidOperationException("Port 4318 did not return the Folklet app after startup.");
                     Thread.Sleep(300);
                 }
             }
-            throw new TimeoutException("Crew is taking longer than expected to start. Choose Retry in a moment.");
+            throw new TimeoutException("Folklet is taking longer than expected to start. Choose Retry in a moment.");
         }
     }
 
@@ -334,24 +334,24 @@ namespace CrewDesktop
         internal CrewWindow(string report)
         {
             smokeReport = report;
-            Text = "Crew"; MinimumSize = new Size(900, 620); Size = new Size(1360, 900); StartPosition = FormStartPosition.CenterScreen;
+            Text = "Folklet"; MinimumSize = new Size(900, 620); Size = new Size(1360, 900); StartPosition = FormStartPosition.CenterScreen;
             AutoScaleMode = AutoScaleMode.Dpi; BackColor = Color.FromArgb(250, 250, 249);
             Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
             browser.Dock = DockStyle.Fill; browser.DefaultBackgroundColor = BackColor; browser.Visible = false;
             Controls.Add(browser);
             loading.Dock = DockStyle.Fill; loading.BackColor = BackColor; Controls.Add(loading);
-            Label title = new Label { Text = "Crew", Font = new Font("Segoe UI", 25, FontStyle.Bold), AutoSize = true, Anchor = AnchorStyles.None };
+            Label title = new Label { Text = "Folklet", Font = new Font("Segoe UI", 25, FontStyle.Bold), AutoSize = true, Anchor = AnchorStyles.None };
             status.Font = new Font("Segoe UI", 11); status.ForeColor = Color.FromArgb(93, 93, 90); status.TextAlign = ContentAlignment.TopCenter; status.Size = new Size(620, 110); status.Text = "Opening your workspace…";
             retry.Text = "Retry"; retry.Size = new Size(104, 36); retry.Visible = false; retry.FlatStyle = FlatStyle.Flat;
             loading.Controls.Add(title); loading.Controls.Add(status); loading.Controls.Add(retry);
             loading.Resize += delegate { title.Location = new Point((loading.Width - title.Width) / 2, loading.Height / 2 - 105); status.Location = new Point((loading.Width - status.Width) / 2, loading.Height / 2 - 40); retry.Location = new Point((loading.Width - retry.Width) / 2, loading.Height / 2 + 84); };
             retry.Click += async delegate { await InitializeBrowser(); };
             ContextMenuStrip menu = new ContextMenuStrip();
-            menu.Items.Add("Open Crew", null, delegate { OpenWindow(); });
+            menu.Items.Add("Open Folklet", null, delegate { OpenWindow(); });
             menu.Items.Add("Reload", null, delegate { OpenWindow(); if (browser.CoreWebView2 != null) browser.Reload(); });
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add("Quit Crew", null, async delegate { await QuitCrew(); });
-            tray.Icon = Icon; tray.Text = "Crew — your workspace"; tray.ContextMenuStrip = menu; tray.Visible = report == null;
+            menu.Items.Add("Quit Folklet", null, async delegate { await QuitCrew(); });
+            tray.Icon = Icon; tray.Text = "Folklet — your workspace"; tray.ContextMenuStrip = menu; tray.Visible = report == null;
             tray.DoubleClick += delegate { OpenWindow(); };
             FormClosing += OnClosing;
             Shown += async delegate { await InitializeBrowser(); };
@@ -376,7 +376,7 @@ namespace CrewDesktop
             catch (Exception error)
             {
                 Program.Log("Shutdown", error);
-                MessageBox.Show(this, "Crew could not be stopped.\n\n" + error.Message, "Crew", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, "Folklet could not be stopped.\n\n" + error.Message, "Folklet", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             finally { quittingServer = false; }
         }
@@ -451,7 +451,7 @@ namespace CrewDesktop
             };
             core.NavigationCompleted += async delegate(object sender, CoreWebView2NavigationCompletedEventArgs e)
             {
-                if (!e.IsSuccess) { if (e.WebErrorStatus != CoreWebView2WebErrorStatus.OperationCanceled) Fail("Crew could not open the workspace. Choose Retry.", new Exception(e.WebErrorStatus.ToString())); return; }
+                if (!e.IsSuccess) { if (e.WebErrorStatus != CoreWebView2WebErrorStatus.OperationCanceled) Fail("Folklet could not open the workspace. Choose Retry.", new Exception(e.WebErrorStatus.ToString())); return; }
                 if (!NavigationPolicy.IsCrewOrigin(core.Source)) return;
                 loading.Visible = false; browser.Visible = true;
                 if (smokeReport != null && !smokeCaptured)
@@ -463,7 +463,7 @@ namespace CrewDesktop
                         string json = await core.ExecuteScriptAsync("JSON.stringify({title:document.title,app:!!document.getElementById('app'),main:!!document.querySelector('main'),rendered:!!document.querySelector('#page .team-home'),tokenPresent:typeof window.CREW_TOKEN==='string'&&window.CREW_TOKEN.length===64,bodyVisible:document.body.innerText.length>20})");
                         JavaScriptSerializer serializer = new JavaScriptSerializer();
                         Dictionary<string, object> page = serializer.Deserialize<Dictionary<string, object>>(serializer.Deserialize<string>(json));
-                        bool passed = (string)page["title"] == "Crew" && (bool)page["app"] && (bool)page["main"] && (bool)page["rendered"] && (bool)page["tokenPresent"] && (bool)page["bodyVisible"];
+                        bool passed = (string)page["title"] == "FOLKLET" && (bool)page["app"] && (bool)page["main"] && (bool)page["rendered"] && (bool)page["tokenPresent"] && (bool)page["bodyVisible"];
                         string screenshot = Path.ChangeExtension(smokeReport, ".png");
                         using (FileStream file = File.Create(screenshot)) await core.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, file);
                         Program.WriteReport(smokeReport, new { passed = passed, server = serverMode, source = core.Source, page = page, screenshot = screenshot, hostObjectsDisabled = !core.Settings.AreHostObjectsAllowed, webMessagesDisabled = !core.Settings.IsWebMessageEnabled, devToolsDisabled = !core.Settings.AreDevToolsEnabled, webViewRuntime = core.Environment.BrowserVersionString });
@@ -486,7 +486,7 @@ namespace CrewDesktop
             if (!quitting && e.CloseReason == CloseReason.UserClosing)
             {
                 e.Cancel = true; Hide();
-                if (!explainedTray) { explainedTray = true; tray.ShowBalloonTip(3000, "Crew is still available", "Open Crew from this icon. Your routines and phone connection keep running.", ToolTipIcon.Info); }
+                if (!explainedTray) { explainedTray = true; tray.ShowBalloonTip(3000, "Folklet is still available", "Open Folklet from this icon. Your routines and phone connection keep running.", ToolTipIcon.Info); }
                 return;
             }
             // Closing the desktop must not stop the independent local server.

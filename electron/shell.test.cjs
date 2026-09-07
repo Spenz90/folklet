@@ -11,7 +11,7 @@ const {HOME_URL,isCrewOrigin,isCrewResource,externalWebLink,parseHealth,tokenFro
 const {probeHost,bundledFiles,ensureHost,shutdownHost,installBrowser}=require('./host.cjs');
 
 const token='a'.repeat(64);
-const html=value=>`<title>Crew</title><div id="app"></div><script>window.CREW_TOKEN='${value}';</script><script src="/app.js"></script>`;
+const html=value=>`<title>FOLKLET</title><div id="app"></div><script>window.CREW_TOKEN='${value}';</script><script src="/app.js"></script>`;
 function packageFixture(t){
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'crew-shell-'));
  for(const name of ['runtime/node','runtime/node.exe','runtime/codex/bin/codex','runtime/codex/codex.exe','server.mjs','node_modules/playwright/cli.js']){const file=path.join(root,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,'Test fixture; never execute');}

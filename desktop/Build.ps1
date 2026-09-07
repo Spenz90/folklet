@@ -12,7 +12,7 @@ $crewCache = [IO.Path]::GetFullPath($CacheDirectory)
 $crewOutput = [IO.Path]::GetFullPath($OutputDirectory)
 $crewPins = Get-Content -LiteralPath (Join-Path $crewRoot 'scripts\dependencies.json') -Raw | ConvertFrom-Json
 $crewCompiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-if (-not (Test-Path -LiteralPath $crewCompiler)) { throw '.NET Framework 4.8 is required to build Crew on Windows.' }
+if (-not (Test-Path -LiteralPath $crewCompiler)) { throw '.NET Framework 4.8 is required to build Folklet on Windows.' }
 $crewPackage = Get-CrewAsset $crewPins.webview2.url $crewPins.webview2.sha256 $crewCache -Offline:$Offline
 $crewSdk = Expand-CrewZip $crewPackage $crewCache
 try {
@@ -31,7 +31,7 @@ try {
         "$PSScriptRoot\Crew.cs"
     )
     & $crewCompiler @crewArguments
-    if ($LASTEXITCODE -ne 0) { throw "Crew compilation failed with code $LASTEXITCODE." }
+    if ($LASTEXITCODE -ne 0) { throw "Folklet compilation failed with code $LASTEXITCODE." }
     $crewConfiguration = Join-Path $PSScriptRoot 'Crew.exe.config'
     if ($crewOutput.TrimEnd('\') -ne $PSScriptRoot.TrimEnd('\')) {
         Copy-Item -LiteralPath $crewConfiguration -Destination (Join-Path $crewOutput 'Crew.exe.config') -Force

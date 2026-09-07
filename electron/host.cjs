@@ -37,7 +37,7 @@ function bundledFiles(appRoot,platform=process.platform){
  const node=path.join(appRoot,'runtime',platform==='win32'?'node.exe':'node');
  const engine=path.join(appRoot,'runtime','codex',...(platform==='win32'?['codex.exe']:['bin','codex']));
  const server=path.join(appRoot,'server.mjs');
- for(const file of [node,engine,server])if(!fs.existsSync(file)||!fs.statSync(file).isFile())throw Error('Crew’s bundled runtime is missing. Restore the complete Crew app.');
+ for(const file of [node,engine,server])if(!fs.existsSync(file)||!fs.statSync(file).isFile())throw Error('Folklet’s bundled runtime is missing. Restore the complete Folklet app.');
  return {node,engine,server};
 }
 
@@ -48,11 +48,11 @@ async function ensureHost({appRoot,dataRoot,browserRoot,port=4318,spawnProcess=s
   const state=await probeHost({port});
   if(state.state==='ready'){
    if(expectedPid&&state.pid!==expectedPid)throw Error('The smoke host identity changed. No process was stopped.');
-   if(child&&state.pid!==child.pid)throw Error('Another local service took Crew’s port. No process was stopped.');
+   if(child&&state.pid!==child.pid)throw Error('Another local service took Folklet’s port. No process was stopped.');
    return {...state,child,port};
   }
-  if(state.state==='occupied')throw Error('Another local service is using Crew’s port. Close that service and reopen Crew.');
-  if(failed)throw Error('Crew’s background service stopped before it was ready. Check that this app supports your computer.');
+  if(state.state==='occupied')throw Error('Another local service is using Folklet’s port. Close that service and reopen Folklet.');
+  if(failed)throw Error('Folklet’s background service stopped before it was ready. Check that this app supports your computer.');
   if(state.state==='absent'&&!child){
    if(existingOnly)throw Error('The smoke test requires its isolated host to be running.');
    fs.mkdirSync(dataRoot,{recursive:true});
@@ -65,12 +65,12 @@ async function ensureHost({appRoot,dataRoot,browserRoot,port=4318,spawnProcess=s
   }
   await pause(250);
  }
- throw Error('Crew’s background service did not become ready. Reopen Crew to try again.');
+ throw Error('Folklet’s background service did not become ready. Reopen Folklet to try again.');
 }
 
 function installBrowser({appRoot,browserRoot,signal,spawnProcess=spawn}={}){
  const {node}=bundledFiles(appRoot),cli=path.join(appRoot,'node_modules','playwright','cli.js');
- if(!fs.existsSync(cli)||!fs.statSync(cli).isFile())return Promise.reject(Error('Crew’s browser installer is missing. Restore the complete app.'));
+ if(!fs.existsSync(cli)||!fs.statSync(cli).isFile())return Promise.reject(Error('Folklet’s browser installer is missing. Restore the complete app.'));
  fs.mkdirSync(browserRoot,{recursive:true});
  return new Promise((resolve,reject)=>{
   const env={...process.env,PLAYWRIGHT_BROWSERS_PATH:browserRoot};delete env.NODE_OPTIONS;delete env.NODE_PATH;
@@ -84,7 +84,7 @@ async function shutdownHost(identity){
  if(!identity)return;
  const current=await probeHost({port:identity.port});
  if(current.state==='absent')return;
- if(current.state!=='ready'||current.pid!==identity.pid||current.token!==identity.token)throw Error('The local service changed. Crew did not send a shutdown request.');
+ if(current.state!=='ready'||current.pid!==identity.pid||current.token!==identity.token)throw Error('The local service changed. Folklet did not send a shutdown request.');
  const response=await requestLocal('/api/shutdown',{port:identity.port,method:'POST',token:current.token,timeout:5000,maxBytes:4096});
  let body;try{body=JSON.parse(response.text);}catch{}
  if(response.status!==200||body?.ok!==true)throw Error('The background service did not confirm shutdown.');

@@ -92,7 +92,7 @@ test('isolated host integrates providers, workspace tools, learning and phone bo
  const env={...process.env,CREW_DATA:dataRoot,CODEX_HOME:accountRoot,CREW_PORT:'0',CREW_MOBILE_PORT:String(mobilePort),CREW_CODEX_OVERRIDE:process.execPath};
  for(const name of ['OPENAI_API_KEY','CODEX_API_KEY','CODEX_ACCESS_TOKEN','CODEX_AUTH_TOKEN','ANTHROPIC_API_KEY','GEMINI_API_KEY','NODE_OPTIONS'])delete env[name];
  child=spawn(process.execPath,[path.join(appRoot,'server.mjs')],{cwd:appRoot,env,windowsHide:true,stdio:['ignore','pipe','pipe']});
- child.stdout.on('data',chunk=>{stdout=(stdout+chunk).slice(-10000);port=Number(stdout.match(/Crew 5 is running at http:\/\/127\.0\.0\.1:(\d+)/)?.[1])||port;});
+ child.stdout.on('data',chunk=>{stdout=(stdout+chunk).slice(-10000);port=Number(stdout.match(/FOLKLET is running at http:\/\/127\.0\.0\.1:(\d+)/)?.[1])||port;});
  child.stderr.on('data',chunk=>{stderr=(stderr+chunk).slice(-10000);});
  let spawnError;child.on('error',error=>{spawnError=error;});
  const startup=Date.now()+6000;while(!port&&child.exitCode===null&&!spawnError&&Date.now()<startup)await delay(20);

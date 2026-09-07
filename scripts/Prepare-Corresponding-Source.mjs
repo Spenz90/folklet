@@ -30,7 +30,7 @@ export async function prepareCorrespondingSource({cache=path.join(root,'.cache',
   const response=await fetch(pin.url,{redirect:'error'});if(!response.ok)throw Error('Official corresponding-source download failed.');
   const temp=cached+'.'+randomUUID()+'.part';try{await pipeline(Readable.fromWeb(response.body),fs.createWriteStream(temp,{flags:'wx'}));await verifyCorrespondingSource(temp,pin);fs.renameSync(temp,cached);}finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
  }
- const receipt=await verifyCorrespondingSource(cached,pin),destination=path.join(output,pin.output),receiptFile=path.join(output,'Crew-Linux-Corresponding-Source.json');
+ const receipt=await verifyCorrespondingSource(cached,pin),destination=path.join(output,pin.output),receiptFile=path.join(output,'Folklet-Linux-Corresponding-Source.json');
  for(const file of [destination,destination+'.sha256',receiptFile])assertNoLinks(file);
  fs.copyFileSync(cached,destination);fs.writeFileSync(destination+'.sha256',pin.sha256+'  '+pin.output+'\n');fs.writeFileSync(receiptFile,JSON.stringify(receipt,null,2)+'\n');
  console.log('Prepared verified Linux corresponding source. Distribute it and its receipt alongside the Linux desktop download.');return receipt;

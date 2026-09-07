@@ -19,18 +19,18 @@ jobs:
         include:
           - runner: windows-2025
             platform: win32-x64
-            archive: Crew-Windows.zip
+            archive: Folklet-Windows.zip
           - runner: macos-15
             platform: darwin-arm64
             arch: arm64
-            archive: Crew-Mac-AppleSilicon.zip
+            archive: Folklet-Mac-AppleSilicon.zip
           - runner: macos-15-intel
             platform: darwin-x64
             arch: x64
-            archive: Crew-Mac-Intel.zip
+            archive: Folklet-Mac-Intel.zip
           - runner: ubuntu-24.04
             platform: linux-x64
-            archive: Crew-Linux-x64.zip
+            archive: Folklet-Linux-x64.zip
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -113,7 +113,7 @@ jobs:
           path: |
             dist/*.zip
             dist/*.sha256
-            dist/Crew-Linux-Corresponding-Source.tar.gz
-            dist/Crew-Linux-Corresponding-Source.json
+            dist/Folklet-Linux-Corresponding-Source.tar.gz
+            dist/Folklet-Linux-Corresponding-Source.json
           if-no-files-found: error
           retention-days: 14

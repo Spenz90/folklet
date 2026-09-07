@@ -1,4 +1,4 @@
-# Downloads local, pinned dependencies and builds Crew; no administrator access or system installation.
+# Downloads local, pinned dependencies and builds Folklet; no administrator access or system installation.
 [CmdletBinding()]
 param(
     [string]$CacheDirectory = (Join-Path $PSScriptRoot '.cache\crew-setup'),
@@ -12,4 +12,4 @@ $ErrorActionPreference = 'Stop'
 if (-not $SkipDesktop) {
     & (Join-Path $PSScriptRoot 'desktop\Build.ps1') -CacheDirectory $CacheDirectory -Offline:$Offline
 }
-Write-Host 'Setup complete. Open Start Crew.cmd. Sign in to ChatGPT inside Crew.' -ForegroundColor Green
+Write-Host 'Setup complete. Open Start Folklet.cmd. Connect ChatGPT or an API provider inside Folklet.' -ForegroundColor Green

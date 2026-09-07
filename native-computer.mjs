@@ -73,7 +73,7 @@ export class NativeComputer{
  configure({enabled}={}){if(typeof enabled!=='boolean')throw failure('Choose whether native desktop access is enabled.');this.enabled=enabled;this.revision++;this.frame=null;this.abort?.abort();return this.status();}
  setEnabled(enabled){return this.configure({enabled});}
  execute(_bot,action,approve){return this.act(action,{actor:'bot',approve});}
- check(revision){if(!this.enabled||revision!==this.revision)throw failure('Native desktop access is disabled or changed. Enable it explicitly in Crew first.');const {reason}=this.status();if(reason)throw failure(reason);}
+ check(revision){if(!this.enabled||revision!==this.revision)throw failure('Native desktop access is disabled or changed. Enable it explicitly in FOLKLET first.');const {reason}=this.status();if(reason)throw failure(reason);}
  checkFrame(action){if(action.action==='look')return;const frame=this.frame;if(!frame||frame.frameId!==action.frameId||this.now()-frame.capturedAt>60000)throw failure('That desktop view is no longer current. Look again before acting.');if(action.action==='click'&&(action.x>=frame.width||action.y>=frame.height))throw failure('Click coordinates must stay inside the current screenshot.');}
  async command(command,args,input='',signal){return this.runProcess(command,args,{input,env:this.env,signal});}
  async windows(action,signal){const bytes=await this.command(path.join(this.helperRoot,'windows-control.exe'),[],JSON.stringify(action),signal);return JSON.parse(bytes.toString('utf8'));}

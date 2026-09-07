@@ -15,7 +15,7 @@ while [ "$#" -gt 0 ]; do
         --install-browser) crew_browser=always; shift ;;
         --help)
             echo 'Usage: sh ./Setup.sh [--cache directory] [--offline] [--skip-browser | --install-browser]'
-            echo 'Quit Crew first. The default installs Chromium only if no suitable browser is found.'
+            echo 'Quit Folklet first. The default installs Chromium only if no suitable browser is found.'
             exit 0 ;;
         *) echo "Unknown setup option: $1" >&2; exit 1 ;;
     esac
@@ -37,7 +37,7 @@ case "$(uname -s)-$(uname -m)" in
 esac
 if [ "$(uname -s)" = Darwin ]; then
     crew_macos=$(/usr/bin/sw_vers -productVersion)
-    [ "${crew_macos%%.*}" -ge 15 ] || { echo 'Crew requires macOS 15 or later.' >&2; exit 1; }
+    [ "${crew_macos%%.*}" -ge 15 ] || { echo 'Folklet requires macOS 15 or later.' >&2; exit 1; }
 fi
 command -v tar >/dev/null 2>&1 || { echo 'Install tar before running setup.' >&2; exit 1; }
 if command -v sha256sum >/dev/null 2>&1; then
@@ -73,4 +73,4 @@ set -- "$crew_root/scripts/Install-Platform.mjs" --platform "$crew_platform" --r
 [ "$crew_offline" -eq 0 ] || set -- "$@" --offline
 case "$crew_browser" in auto) set -- "$@" --browser-if-needed ;; always) set -- "$@" --install-browser ;; esac
 "$crew_node" "$@"
-echo 'Crew source dependencies are ready. See README.md for starting the host or building the desktop app.'
+echo 'Folklet source dependencies are ready. See README.md for starting the host or building the desktop app.'

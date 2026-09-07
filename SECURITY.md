@@ -2,15 +2,15 @@
 
 ## Reporting an issue
 
-Crew is a community preview. Report against the latest source or release with the Crew version, host OS and a small reproduction using fabricated data.
+Folklet is a community preview. Report against the latest source or release with the Folklet version, host OS and a small reproduction using fabricated data.
 
-Private vulnerability reporting is enabled for [Spenz90/crew](https://github.com/Spenz90/crew/security/advisories/new). Use **Security → Report a vulnerability**. Do not include credentials, real chats, pairing codes, browser profiles or an exploit against someone else's installation in a public issue. If a fork has no private reporting, ask its maintainer to enable it without posting sensitive details.
+Private vulnerability reporting is enabled for [Spenz90/folklet](https://github.com/Spenz90/folklet/security/advisories/new). Use **Security → Report a vulnerability**. Do not include credentials, real chats, pairing codes, browser profiles or an exploit against someone else's installation in a public issue. If a fork has no private reporting, ask its maintainer to enable it without posting sensitive details.
 
 ## Host and phone boundaries
 
 The main host binds only to 127.0.0.1, checks the Host header and requires a per-run token for API access. It is a workspace for one trusted OS user. Software already running with that user's access can reach the local interface; its token is not protection from a malicious local process.
 
-Managed bot browsers cannot open Crew's owner or phone control origins. Context-wide request checks cover popups and subrequests; a browser request marker is rejected by both listeners before serving their interface or APIs. Service workers are blocked in these managed profiles. Other local development sites remain available. This protects the browser tool boundary, not against arbitrary code or another process already running as the OS user.
+Managed bot browsers cannot open Folklet's owner or phone control origins. Context-wide request checks cover popups and subrequests; a browser request marker is rejected by both listeners before serving their interface or APIs. Service workers are blocked in these managed profiles. Other local development sites remain available. This protects the browser tool boundary, not against arbitrary code or another process already running as the OS user.
 
 Phone access starts off. Its separate loopback gateway is intended for private Tailscale Serve HTTPS. Pairing codes expire and are single-use; attempts are limited. Device secrets are stored as hashes. Session cookies use Secure, HttpOnly and SameSite; changing requests also require a device CSRF token. Pairing gives a device access to the personal workspace.
 
@@ -18,21 +18,21 @@ Paired phones cannot manage provider secrets or ChatGPT sign-in, configure integ
 
 ## Models and credentials
 
-ChatGPT authentication belongs to the bundled official Codex engine. Crew's status omits email and credential values and accepts only approved official sign-in destinations. Other official Codex clients for the same OS user can share that credential cache. Signing out may affect them.
+ChatGPT authentication belongs to the bundled official Codex engine. Folklet's status omits email and credential values and accepts only approved official sign-in destinations. Other official Codex clients for the same OS user can share that credential cache. Signing out may affect them.
 
-API keys stay in process memory by default. Explicitly remembered keys are written to provider-secrets.json in Crew's private data folder, with owner-only permissions on macOS/Linux. On Windows, access follows the data folder’s existing Windows permissions; Crew does not install a separate access-control rule. This is plaintext storage, not an encrypted vault or OS keychain. Protect the OS account, disk and backups. Removing a key locally does not revoke it with its provider.
+API keys stay in process memory by default. Explicitly remembered keys are written to provider-secrets.json in Folklet's private data folder, with owner-only permissions on macOS/Linux. On Windows, access follows the data folder’s existing Windows permissions; Folklet does not install a separate access-control rule. This is plaintext storage, not an encrypted vault or OS keychain. Protect the OS account, disk and backups. Removing a key locally does not revoke it with its provider.
 
-OpenRouter authorization uses its official S256 PKCE flow with an expiring one-time state and exchanges the result for a user-controlled API key. Crew does not implement unofficial consumer subscription login for other providers. Custom API endpoints receive the key and task content sent to them; remote endpoints require HTTPS.
+OpenRouter authorization uses its official S256 PKCE flow with an expiring one-time state and exchanges the result for a user-controlled API key. Folklet does not implement unofficial consumer subscription login for other providers. Custom API endpoints receive the key and task content sent to them; remote endpoints require HTTPS.
 
-Prompts, tool output, chosen files and submitted screenshots go to the selected model provider. Browser websites receive their normal page interactions. Crew is not an offline privacy boundary merely because its interface runs locally. Provider retention, billing and account controls are governed by that provider.
+Prompts, tool output, chosen files and submitted screenshots go to the selected model provider. Browser websites receive their normal page interactions. Folklet is not an offline privacy boundary merely because its interface runs locally. Provider retention, billing and account controls are governed by that provider.
 
 Fallback is off until the owner explicitly approves a connection/model order and sharing task content with it. It runs only for temporary failures before any answer or tool use and checks that the task's permissions and relevant settings have not changed. An API connection cannot automatically switch to Codex. No fallback or automatic routine retry occurs after Codex turn dispatch, because actions may already have started before their events become visible.
 
 ## Files, tools and the real desktop
 
-Official Codex tasks use workspace-write sandboxing and on-request approvals. API bots receive Crew's bounded tools, not an arbitrary terminal. The workspace file tool checks containment, linked paths and size; writes are confined to the bot workspace. Other engine operations can request additional access through the engine's approval flow.
+Official Codex tasks use workspace-write sandboxing and on-request approvals. API bots receive Folklet's bounded tools, not an arbitrary terminal. The workspace file tool checks containment, linked paths and size; writes are confined to the bot workspace. Other engine operations can request additional access through the engine's approval flow.
 
-Bots share an OS account. Separate workspaces and browser profiles organize work; they are not hardened tenant isolation. A private VPS isolates that host from a home computer, but Crew itself does not create a VM. Treat downloaded files, webpages and model output as untrusted.
+Bots share an OS account. Separate workspaces and browser profiles organize work; they are not hardened tenant isolation. A private VPS isolates that host from a home computer, but Folklet itself does not create a VM. Treat downloaded files, webpages and model output as untrusted.
 
 Native desktop control is off at every host start. A trusted local owner must enable it for that session. Each model screenshot and input needs a real approval. Inputs require the latest short-lived frame. Disable cancels pending work but cannot undo input already delivered to the OS. Screenshots can include any visible app and go to the model provider.
 
@@ -50,7 +50,7 @@ A handoff to a bot outside the current channel passes the bounded assignment wit
 
 The initial integration reads GitHub issues and pull requests for an explicitly configured repository and allowed bot list. It cannot write to GitHub or execute repository code. Repository text is untrusted model input. Integration and Telegram tokens are session-only by default; remembered tokens use plaintext private files with owner-only Unix permissions and inherited Windows folder permissions, matching the limits described above.
 
-Telegram notifications require a short-lived pairing code, a recipient preview and explicit activation on the host. They omit task content, bot names and approval details; the optional Crew link must be private. Telegram cannot approve actions. Quiet hours suppress notifications, including input requests, without delayed delivery. Revoke access when a token or recipient should no longer be used. Telegram still receives normal delivery metadata.
+Telegram notifications require a short-lived pairing code, a recipient preview and explicit activation on the host. They omit task content, bot names and approval details; the optional Folklet link must be private. Telegram cannot approve actions. Quiet hours suppress notifications, including input requests, without delayed delivery. Revoke access when a token or recipient should no longer be used. Telegram still receives normal delivery metadata.
 
 ## App-change drafts
 
@@ -58,7 +58,7 @@ Marking an app-change proposal reviewed does not edit the app. A separate source
 
 On the host, selected tests require explicit approval tied to the current review hash. They execute proposed code using Node file-access and child-process restrictions, with credentials removed from the environment. **Run only code you trust. These Node restrictions are not a security sandbox; network and local services remain reachable.** Review that code before authorizing execution. Passing a selected subset is not a full release or security certification.
 
-Applying requires current passing syntax and selected-test checks, explicit approval of the exact revision, no queued or active tasks, and unchanged original source. Backups support restoration only while the applied files still match. Draft edits invalidate earlier checks. Crew does not automatically apply, install packages, restart or publish an update. Private draft copies, test output and backups remain excluded from releases. See [the app-change workflow](FEATURES.md#review-an-app-change-draft).
+Applying requires current passing syntax and selected-test checks, explicit approval of the exact revision, no queued or active tasks, and unchanged original source. Backups support restoration only while the applied files still match. Draft edits invalidate earlier checks. Folklet does not automatically apply, install packages, restart or publish an update. Private draft copies, test output and backups remain excluded from releases. See [the app-change workflow](FEATURES.md#review-an-app-change-draft).
 
 ## Desktop wrappers and storage
 

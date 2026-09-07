@@ -116,7 +116,7 @@ test('a rejected OpenRouter sign-in URL keeps the form usable without opening a 
 test('guide titles are escaped before reaching the shared modal HTML contract',async()=>{
  const h=harness();h.context.respond=()=>({title:'<img src=x>',text:'Help'});await h.click({settingsGuide:'QUICKSTART.md'});assert.equal(h.modals.at(-1).title,'&lt;img src=x&gt;');
 });
-test('recognized local guide links are usable inside Crew without allowing arbitrary file navigation',async()=>{
+test('recognized local guide links are usable inside FOLKLET without allowing arbitrary file navigation',async()=>{
  const h=harness();h.context.respond=async()=>({title:'Features',text:'Read [Quick start](QUICKSTART.md), [Security](SECURITY.md) and [Fallback](PROVIDERS.md#approved-fallback). Keep [private](../data/crew.json) and [unknown](UNKNOWN.md) as text.'});
  await h.click({settingsGuide:'FEATURES.md'});const html=h.get('modal-content').innerHTML;
  assert.match(html,/data-settings-guide="QUICKSTART.md">Quick start<\/button>/);assert.match(html,/data-settings-guide="SECURITY.md"/);assert.match(html,/data-settings-guide="PROVIDERS.md"/);assert.doesNotMatch(html,/data-settings-guide="(?:\.\.\/data\/crew.json|UNKNOWN.md)"/);assert.ok(html.includes('[unknown](UNKNOWN.md)'));

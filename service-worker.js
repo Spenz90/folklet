@@ -1,9 +1,9 @@
-/* Crew stores only this public fallback and original app icons for offline use.
+/* FOLKLET stores only this public fallback and original app icons for offline use.
  * API requests, pairing pages, app HTML, chats and credentials are never cached.
  * Keep this public allowlist explicit; do not replace it with app-shell caching.
  */
 const CACHE_PREFIX='crew-public-offline-';
-const CACHE_NAME=CACHE_PREFIX+'v3';
+const CACHE_NAME=CACHE_PREFIX+'v4';
 const OFFLINE_PATH='/offline.html';
 const PUBLIC_ASSETS=new Map([
   [OFFLINE_PATH,'text/html'],
@@ -22,9 +22,9 @@ self.addEventListener('install',event=>{
       const response=await fetch(new Request(path,{credentials:'omit',cache:'no-store',redirect:'error'}));
       const contentType=response.headers.get('content-type')?.split(';')[0].trim();
       const expectedType=contentType===type||(type==='image/x-icon'&&contentType==='image/vnd.microsoft.icon');
-      if(!response.ok||response.redirected||!expectedType)throw new Error('Crew public offline asset unavailable.');
+      if(!response.ok||response.redirected||!expectedType)throw new Error('FOLKLET public offline asset unavailable.');
       if(path===OFFLINE_PATH&&!((await response.clone().text()).includes('<meta name="crew-offline" content="public-v1">'))){
-        throw new Error('Crew offline asset does not match the public fallback.');
+        throw new Error('FOLKLET offline asset does not match the public fallback.');
       }
       await cache.put(path,response);
     }));
@@ -41,7 +41,7 @@ self.addEventListener('activate',event=>{
 
 async function offline(){
   const cached=await (await caches.open(CACHE_NAME)).match(OFFLINE_PATH);
-  return cached||new Response('Crew cannot reach your host. Check your connection, keep Crew running on your computer or server, and try again.',{
+  return cached||new Response('FOLKLET cannot reach your host. Check your connection, keep FOLKLET running on your computer or server, and try again.',{
     status:503,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}
   });
 }

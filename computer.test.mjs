@@ -31,7 +31,7 @@ test('queued bot actions stop when the user takes control before execution',asyn
 test('managed browser blocks Crew origins and IP aliases but preserves other local development sites',async t=>{
  const {computers,bot,page}=browserHarness(t);computers.protectControlOrigin('http://127.0.0.1:4318');computers.protectControlOrigin('http://127.0.0.1:4320');computers.protectControlOrigin('https://crew.example.ts.net:8443');
  const navigations=[];page.goto=async url=>navigations.push(url);
- for(const url of ['http://127.0.0.1:4318/','http://localhost:4318/?x=1','http://[::1]:4318/','http://2130706433:4318/','http://0x7f000001:4318/','http://127.1:4318/','http://localhost:4320/pair','https://crew.example.ts.net:8443/'])await assert.rejects(computers.act(bot,{action:'navigate',url}),/cannot open Crew owner/);
+ for(const url of ['http://127.0.0.1:4318/','http://localhost:4318/?x=1','http://[::1]:4318/','http://2130706433:4318/','http://0x7f000001:4318/','http://127.1:4318/','http://localhost:4320/pair','https://crew.example.ts.net:8443/'])await assert.rejects(computers.act(bot,{action:'navigate',url}),/cannot open FOLKLET owner/);
  assert.equal(navigations.length,0);
  for(const url of ['http://localhost:3000/preview','http://127.0.0.1:8080/','https://example.com/'])await computers.act(bot,{action:'navigate',url});
  assert.equal(navigations.length,3);
@@ -63,9 +63,9 @@ test('the next action recovers a closed active tab before interacting',async t=>
 
 test('shutdown closes a browser whose startup completes after shutdown begins',async t=>{
  const {computers,bot,ctx,browser}=browserHarness(t),gate=deferred();browser.launchPersistentContext=()=>gate.promise;
- const starting=assert.rejects(computers.get(bot),/Crew is closing/),closing=computers.close();gate.resolve(ctx);
+ const starting=assert.rejects(computers.get(bot),/FOLKLET is closing/),closing=computers.close();gate.resolve(ctx);
  await Promise.all([starting,closing]);assert.equal(ctx.closed,true);assert.equal(computers.items.size,0);
- await assert.rejects(computers.get(bot),/Crew is closing/);
+ await assert.rejects(computers.get(bot),/FOLKLET is closing/);
 });
 
 test('portable Playwright Chromium is launched explicitly before installed browsers',()=>{

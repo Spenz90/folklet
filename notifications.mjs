@@ -5,7 +5,7 @@ import {readPrivateJson,writePrivateJson,remoteJson} from './integrations.mjs';
 // https://core.telegram.org/bots/api#getupdates and #sendmessage
 const clone=value=>structuredClone(value),emptyQuiet=()=>({enabled:false,start:'22:00',end:'08:00',timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone});
 function tokenValue(value){if(typeof value!=='string'||value.length>500||value&&!/^\d{5,20}:[A-Za-z0-9_-]{20,150}$/.test(value))throw Error('Enter the Telegram bot token from BotFather.');return value;}
-function privateBase(value){if(value==='')return '';let url;try{url=new URL(value);}catch{throw Error('Use your private Crew HTTPS address.');}if(url.protocol!=='https:'||!url.hostname.endsWith('.ts.net')||!['','8443'].includes(url.port)||url.username||url.password||url.pathname!=='/'||url.search||url.hash)throw Error('Use the private Crew root HTTPS address ending in .ts.net, on port 443 or 8443.');return url.origin;}
+function privateBase(value){if(value==='')return '';let url;try{url=new URL(value);}catch{throw Error('Use your private FOLKLET HTTPS address.');}if(url.protocol!=='https:'||!url.hostname.endsWith('.ts.net')||!['','8443'].includes(url.port)||url.username||url.password||url.pathname!=='/'||url.search||url.hash)throw Error('Use the private FOLKLET root HTTPS address ending in .ts.net, on port 443 or 8443.');return url.origin;}
 function quietValue(value){
  if(!value||typeof value.enabled!=='boolean'||!/^([01]\d|2[0-3]):[0-5]\d$/.test(value.start)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(value.end)||typeof value.timeZone!=='string'||value.timeZone.length>100)throw Error('Choose valid quiet hours and a time zone.');
  try{new Intl.DateTimeFormat('en',{timeZone:value.timeZone}).format();}catch{throw Error('Choose a valid IANA time zone.');}
@@ -69,7 +69,7 @@ export class TelegramNotifications{
   const work=this.queue.then(async()=>{
    if(this.closed||this.revision!==revision||!this.status().enabled)return {delivered:false,reason:'changed'};
    if(inQuietHours(this.config.quietHours,this.now()))return {delivered:false,reason:'quiet-hours'};
-   let text={completed:'Crew: a task is complete.',failed:'Crew: a task needs attention.',approval:'Crew: your approval or answer is needed. Open Crew to review it.'}[input.kind];
+   let text={completed:'FOLKLET: a task is complete.',failed:'FOLKLET: a task needs attention.',approval:'FOLKLET: your approval or answer is needed. Open FOLKLET to review it.'}[input.kind];
    if(this.config.baseUrl){const url=new URL(this.config.baseUrl);for(const [key,value]of [['bot',input.botId],['task',input.taskId]])if(typeof value==='string'&&/^[A-Za-z0-9_-]{1,100}$/.test(value))url.searchParams.set(key,value);text+='\n'+url.href;}
    try{await this.request('sendMessage',{chat_id:this.config.recipient.id,text,link_preview_options:{is_disabled:true},protect_content:true});if(this.revision===revision){this.lastError='';this.lastDelivery={at:this.now(),status:'sent'};}return {delivered:true};}
    catch(error){if(this.revision===revision&&!this.closed){this.lastError=error.message;this.lastDelivery={at:this.now(),status:'failed'};}return {delivered:false,reason:error.name==='AbortError'?'cancelled':'request-failed'};}

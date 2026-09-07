@@ -24,16 +24,16 @@ test('environment paths cannot inject more settings and quote shell-looking char
  assert.equal(envQuote('/srv/a "$`\\b'), '"/srv/a \\"\\$\\`\\\\b"');
 });
 test('existing edited settings or a hard link are refused before any install writes',()=>{
- const temp=fs.mkdtempSync(path.join(os.tmpdir(),'crew-hosting-'));
+ const temp=fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()),'crew-hosting-'));
  try{
   const file=path.join(temp,'crew.env'),plan=[{file,text:'expected',mode:0o600}];
   assert.doesNotThrow(()=>assertInstallTargets(plan));
   fs.writeFileSync(file,'existing private settings');
-  assert.throws(()=>assertInstallTargets(plan),/Existing Crew service files differ/);
+  assert.throws(()=>assertInstallTargets(plan),/Existing FOLKLET service files differ/);
   assert.equal(fs.readFileSync(file,'utf8'),'existing private settings');
   fs.writeFileSync(file,'expected');assert.doesNotThrow(()=>assertInstallTargets(plan));
   fs.linkSync(file,path.join(temp,'linked.env'));
-  assert.throws(()=>assertInstallTargets(plan),/Existing Crew service files differ/);
+  assert.throws(()=>assertInstallTargets(plan),/Existing FOLKLET service files differ/);
  }finally{fs.rmSync(temp,{recursive:true,force:true});}
 });
 test('service installer fails closed on other operating systems',()=>{

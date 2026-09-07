@@ -160,7 +160,7 @@ test('non-ASCII invalid CSRF values are rejected without a comparison error',asy
  const f=await fixture(t),p=await f.pair();
  const response=await f.request('/api/state',{headers:{...p.headers,'X-Crew-Token':'é'.repeat(p.csrf.length)}});
  assert.equal(response.status,403);assert.equal(f.requests.length,0);
- assert.deepEqual(JSON.parse(response.text),{error:'Refresh Crew to reconnect.'});
+ assert.deepEqual(JSON.parse(response.text),{error:'Refresh FOLKLET to reconnect.'});
 });
 
 test('authenticated HTML exposes only mobile CSRF while preserving the app and response protections',async t=>{

@@ -2,22 +2,24 @@
 
 ## 0.6.1 — release validation, September 7, 2026
 
-- Prevent managed bot browsers from reaching Crew's owner and phone controls, including popups, subrequests and redirects. Both listeners reject marked browser requests before providing interface or API access.
+- Rename the app to Folklet, including desktop windows, phone installation and download names. Preserve existing workspaces and connection settings.
+- Prevent managed bot browsers from reaching Folklet's owner and phone controls, including popups, subrequests and redirects. Both listeners reject marked browser requests before providing interface or API access.
 - Reject events, approval requests and tool calls from retired tasks on a reused Codex connection.
 - Restrict teammate task-result checks to owned, delegated or explicitly permitted shared-channel work, including after waiting.
 - Preserve the last saved workspace state when a write fails; contain background storage failures and interrupt affected work instead of silently retaining unsaved tasks or settings.
 - Add packaged desktop startup checks and retained platform evidence to release CI. Publisher signing and real-device checks remain release requirements.
+- Preserve verified dependency notices byte for byte in Git checkouts, and use canonical temporary paths for restricted tests on macOS.
 
 This version is being validated for release. See [release checks](RELEASE-CHECKS.md) for actual test and publishing status.
 
 ## 0.6.0 — community preview, September 6, 2026
 
-- Reusable instruction skills with reviewed revisions, per-bot enabling, checklists and Crew JSON import/export. Skills do not install code or grant permissions.
+- Reusable instruction skills with reviewed revisions, per-bot enabling, checklists and Folklet JSON import/export. Skills do not install code or grant permissions.
 - Model-facing recall of a bot's own saved chats, dated snippets and source links. Shared-channel recall is optional and respects current membership.
 - One learning and memory review view with canonical bot/team notes, source links, edit history and undo. Notes require review by default; automatic note updates are explicitly configurable by scope.
 - Routine next-run explanations, missed-run skip/run-once choices, previous-result comparison and change-only success updates. Up to three bounded retries are available before any answer or tool use; accepted workflow proposals stay paused.
 - Read-only GitHub issue/pull-request integration with explicit repository and bot access, plus revocation. No posting, merging or repository code execution.
-- Optional Telegram private-chat notifications with pairing, recipient confirmation, generic content, quiet hours and revocation. Quiet hours skip updates rather than delivering them later. Approvals remain in Crew.
+- Optional Telegram private-chat notifications with pairing, recipient confirmation, generic content, quiet hours and revocation. Quiet hours skip updates rather than delivering them later. Approvals remain in Folklet.
 - Approved per-bot fallback model/reasoning order, explicit provider content-sharing consent and visible reasons. Fallback is off by default, preserves permissions and preferred model settings, and stops after output or tool use. API-to-Codex transitions and retries after Codex turn dispatch are blocked.
 - Separate app-change source drafts, exact revision review, syntax checks, explicitly approved selected tests, guarded application with backups and restoration. Node test restrictions are not a security sandbox; network and local services remain reachable. No automatic apply, dependency installation or restart.
 - A [feature guide](FEATURES.md) and updated [roadmap](FEATURE-ROADMAP.md) explain what is implemented and its limits. Tokens remain session-only by default; explicitly remembered tokens are plaintext private files.

@@ -64,19 +64,21 @@ export async function smokeDesktop({platform,archive,output}={}){
  const digest=await sha(archive),checksum=fs.readFileSync(archive+'.sha256','utf8').trim().split(/\s+/)[0];if(digest!==checksum)throw Error('Desktop checksum does not match.');
  if(platform!=='win32-x64')await verifyUnixArchive(archive,platform);
  await freePort(4318);await freePort(4320);
- fs.mkdirSync(output,{recursive:true});const root=fs.mkdtempSync(path.join(os.tmpdir(),'crew-desktop-smoke-')),extracted=path.join(root,'extracted'),isolated=path.join(root,'isolated');fs.mkdirSync(extracted);fs.mkdirSync(isolated);
+ // macOS exposes its temporary directory through /var -> /private/var.
+ // Start from its canonical parent so the isolated root itself has no links.
+ fs.mkdirSync(output,{recursive:true});const tempRoot=fs.realpathSync(os.tmpdir()),root=fs.mkdtempSync(path.join(tempRoot,'crew-desktop-smoke-')),extracted=path.join(root,'extracted'),isolated=path.join(root,'isolated');fs.mkdirSync(extracted);fs.mkdirSync(isolated);
  const report=path.join(isolated,'desktop.json'),resultPath=path.join(output,platform+'-smoke.json'),screenshot=path.join(output,platform+'-smoke.png');assertNoLinks(resultPath);assertNoLinks(screenshot);
  let host,desktop,identity,passed=false;
  try{
   await extractArchive(archive,extracted);
-  const appRoot=path.join(extracted,...(platform==='win32-x64'?['Crew']:platform.startsWith('darwin')?['Crew.app','Contents','Resources','app','crew']:['Crew','resources','app','crew']));
+  const appRoot=path.join(extracted,...(platform==='win32-x64'?['Folklet']:platform.startsWith('darwin')?['Folklet.app','Contents','Resources','app','crew']:['Folklet','resources','app','crew']));
   const node=path.join(appRoot,'runtime',platform==='win32-x64'?'node.exe':'node'),env=isolatedEnvironment(isolated);for(const value of Object.values(env).filter(value=>typeof value==='string'&&value.startsWith(isolated)))fs.mkdirSync(value,{recursive:true});
   const version=JSON.parse(fs.readFileSync(path.join(appRoot,'package.json'),'utf8')).version;
   host=launch(node,[path.join(appRoot,'server.mjs')],{cwd:appRoot,env});
-  const deadline=Date.now()+30000;
-  while(Date.now()<deadline){const current=await probeHost();if(current.state==='ready'){if(current.pid!==host.pid)throw Error('Smoke host identity mismatch.');identity={...current,port:4318};break;}if(host.exitCode!==null||host.signalCode)throw Error('Packaged host stopped before startup.');await pause(200);}
+  const startupDeadline=Date.now()+30000;
+  while(Date.now()<startupDeadline){const current=await probeHost();if(current.state==='ready'){if(current.pid!==host.pid)throw Error('Smoke host identity mismatch.');identity={...current,port:4318};break;}if(host.exitCode!==null||host.signalCode)throw Error('Packaged host stopped before startup.');await pause(200);}
   if(!identity)throw Error('Packaged host did not start.');
-  const executable=path.join(extracted,...(platform==='win32-x64'?['Crew','desktop','Crew.exe']:platform.startsWith('darwin')?['Crew.app','Contents','MacOS','Electron']:['Crew','crew']));
+  const executable=path.join(extracted,...(platform==='win32-x64'?['Folklet','desktop','Crew.exe']:platform.startsWith('darwin')?['Folklet.app','Contents','MacOS','Electron']:['Folklet','crew']));
   desktop=launch(executable,['--smoke-test',report],{cwd:path.dirname(executable),env:{...env,CREW_SMOKE_ROOT:isolated,CREW_SMOKE_HOST_PID:String(host.pid)}});
   const ended=await deadline(desktop.done,45000,'Packaged desktop smoke timed out.');
   if(ended.code!==0||!fs.existsSync(report))throw Error('Packaged desktop did not complete smoke.');
@@ -91,7 +93,7 @@ export async function smokeDesktop({platform,archive,output}={}){
  }finally{
   await stopOwned(desktop);if(identity&&host?.exitCode===null)await shutdownHost(identity).catch(()=>{});await stopOwned(host);
   if(!passed)fs.writeFileSync(resultPath,JSON.stringify({schemaVersion:1,passed:false,platform,archive:path.basename(archive),archiveSha256:digest,error:'Isolated packaged desktop smoke failed.'},null,2)+'\n');
-  if(path.dirname(root)===path.resolve(os.tmpdir())&&path.basename(root).startsWith('crew-desktop-smoke-'))fs.rmSync(root,{recursive:true,force:true,maxRetries:3,retryDelay:300});
+  if(path.dirname(root)===tempRoot&&path.basename(root).startsWith('crew-desktop-smoke-'))fs.rmSync(root,{recursive:true,force:true,maxRetries:3,retryDelay:300});
  }
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){

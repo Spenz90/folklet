@@ -123,7 +123,7 @@ test('a superseded file preview ignores a late response',async()=>{
 
 test('an unreachable host and a gateway HTML error have readable messages',async()=>{
  const {context,run}=harness();context.fetch=async()=>{throw Error('NetworkError');};
- await assert.rejects(run("api('state')"),/Crew cannot reach your host/);
+ await assert.rejects(run("api('state')"),/FOLKLET cannot reach your host/);
  context.fetch=async()=>({status:502,ok:false,json:async()=>{throw Error('Unexpected token <');}});
  await assert.rejects(run("api('state')"),/Check your connection and try again/);
 });
@@ -147,9 +147,9 @@ test('closing phone setup while its status loads does not reopen the dialog',asy
 
 test('a failed account refresh cannot claim readiness from a previous successful sign-in',async()=>{
  const {run,get}=harness();run("drawAccount({connected:true,type:'chatgpt',error:'Temporary failure'});");
- assert.match(get('modal-content').innerHTML,/last successful check/);assert.doesNotMatch(get('modal-content').innerHTML,/Crew is ready|Sign in with ChatGPT/);
- run("drawAccount({connected:true,type:'chatgpt'});");assert.match(get('modal-content').innerHTML,/Crew is ready/);
+ assert.match(get('modal-content').innerHTML,/last successful check/);assert.doesNotMatch(get('modal-content').innerHTML,/FOLKLET is ready|Sign in with ChatGPT/);
+ run("drawAccount({connected:true,type:'chatgpt'});");assert.match(get('modal-content').innerHTML,/FOLKLET is ready/);
  run("api=async()=>{throw Error('Network unavailable');};");await run('updateAccountPanel()');
- assert.match(get('modal-content').innerHTML,/Could not refresh account status/);assert.doesNotMatch(get('modal-content').innerHTML,/Crew is ready/);
- run("api=async()=>({connected:true,type:'chatgpt'});");await run('updateAccountPanel()');assert.match(get('modal-content').innerHTML,/Crew is ready/);
+ assert.match(get('modal-content').innerHTML,/Could not refresh account status/);assert.doesNotMatch(get('modal-content').innerHTML,/FOLKLET is ready/);
+ run("api=async()=>({connected:true,type:'chatgpt'});");await run('updateAccountPanel()');assert.match(get('modal-content').innerHTML,/FOLKLET is ready/);
 });

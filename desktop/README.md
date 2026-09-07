@@ -1,12 +1,12 @@
-# Crew desktop windows
+# Folklet desktop windows
 
-The Windows application wraps the local Crew host with .NET Framework 4.8, Windows Forms and WebView2. Mac/Linux preview windows use the separate Electron code in electron/. Both use bundled Node and the official Codex runtime; the Codex desktop app is not required.
+The Windows application wraps the local Folklet host with .NET Framework 4.8, Windows Forms and WebView2. Mac/Linux preview windows use the separate Electron code in electron/. Both use bundled Node and the official Codex runtime; the Codex desktop app is not required.
 
 ## Windows
 
-Extract the complete Windows package to a writable folder and open **Start Crew.cmd**. Keep the desktop folder beside the host, interface and runtime files. Windows needs WebView2 Evergreen Runtime and .NET Framework 4.8. The portable app is unsigned.
+Extract the complete Windows package to a writable folder and open **Start Folklet.cmd**. Keep the desktop folder beside the host, interface and runtime files. Windows needs WebView2 Evergreen Runtime and .NET Framework 4.8. The portable app is unsigned.
 
-Closing the window leaves Crew in the tray. Double-click the tray icon to return. Choose **Quit Crew** to stop the owned host and its tasks. Keep the computer awake for routines and phone access.
+Closing the window leaves Folklet in the tray. Double-click the tray icon to return. Choose **Quit Folklet** to stop the owned host and its tasks. Keep the computer awake for routines and phone access.
 
 Source setup downloads pinned dependencies, builds the optional native helper and builds the wrapper:
 
@@ -14,13 +14,13 @@ Source setup downloads pinned dependencies, builds the optional native helper an
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Setup.ps1
 ```
 
-For a wrapper-only rebuild after setup, quit Crew and run:
+For a wrapper-only rebuild after setup, quit Folklet and run:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\desktop\Build.ps1
 ```
 
-The wrapper restricts navigation to the verified local Crew origin, handles ordinary external links through the default browser and exposes no general native script bridge. Its managed/native WebView2 dependencies and SDK license must remain with Crew.exe.
+The wrapper restricts navigation to the verified local Folklet origin, handles ordinary external links through the default browser and exposes no general native script bridge. Its managed/native WebView2 dependencies and SDK license must remain with Crew.exe.
 
 Read-only diagnostic modes are documented in the source and release process. Use a fresh, isolated host and sample data for window tests; a screenshot of a used workspace can disclose chats. Do not attach diagnostics from a personal installation to a public issue.
 
@@ -28,11 +28,11 @@ Read-only diagnostic modes are documented in the source and release process. Use
 
 See [RELEASING.md](../RELEASING.md) for the exact Build-Unix command and native Mac ad-hoc signing step. Current Mac/Linux archives were assembled on Windows and inspected, not launched on their target OS. Mac requires macOS 15+; Linux x64 requires glibc 2.38+, such as Ubuntu 24.04 or Debian 13. Mac releases are not Developer ID signed/notarized.
 
-The Electron window uses sandboxing, context isolation, no Node integration and restricted navigation/permissions. External links open in the user's usual browser. **Crew → Install browser** installs a matching Playwright Chromium into that user's app-data directory. Browser operating-system libraries may still be needed on Linux.
+The Electron window uses sandboxing, context isolation, no Node integration and restricted navigation/permissions. External links open in the user's usual browser. **Folklet → Install browser** installs a matching Playwright Chromium into that user's app-data directory. Browser operating-system libraries may still be needed on Linux.
 
-Closing the Mac window hides it; Linux minimizes it so it remains reachable even without a tray. **Quit Crew** stops the local host that the shell verified. One host uses the standard local port at a time.
+Closing the Mac window hides it; Linux minimizes it so it remains reachable even without a tray. **Quit Folklet** stops the local host that the shell verified. One host uses the standard local port at a time.
 
-The Mac app keeps private data under ~/Library/Application Support/Crew and Linux under the platform app-data location, normally ~/.config/Crew. The Windows portable app keeps data beside the host and its WebView2 profile in desktop/profile. Do not put these folders in release archives.
+The Mac app keeps private data under ~/Library/Application Support/Folklet and Linux under the platform app-data location, normally ~/.config/Folklet. The Windows portable app keeps data beside the host and its WebView2 profile in desktop/profile. Do not put these folders in release archives.
 
 ## Native computer control
 

@@ -107,7 +107,7 @@ export class ProviderStore{
  }
  async handleOAuthCallback({code,state,error}={}){
   const login=this.logins.get(state);if(!login)throw Error('This sign-in is invalid or has already been used.');this.logins.delete(state);
-  if(login.expiresAt<=this.now())throw Error('This sign-in expired. Start again in Crew.');
+  if(login.expiresAt<=this.now())throw Error('This sign-in expired. Start again in FOLKLET.');
   if(error)throw Error('OpenRouter sign-in was not completed.');
   if(typeof code!=='string'||!code||code.length>4096||/[\s\u0000-\u001f]/.test(code))throw Error('OpenRouter returned an invalid authorization code.');
   const result=await providerJson('https://openrouter.ai/api/v1/auth/keys',{fetchImpl:this.fetchImpl,timeoutMs:30000,method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,code_verifier:login.verifier,code_challenge_method:'S256'})});

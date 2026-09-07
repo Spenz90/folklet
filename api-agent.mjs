@@ -9,7 +9,7 @@ function contentText(content){if(typeof content==='string')return content;if(Arr
 function toolText(items){
  const limit=2*1024*1024,text=items.filter(item=>item.type==='inputText').map(item=>String(item.text||'')).join('\n');
  if(text.length<=limit)return text||'The tool completed without text output.';
- const notice='[Crew truncated this tool output because it exceeded the 2,097,152-character limit. The excerpt below is incomplete and may not be valid JSON. Request a smaller result before relying on it.]\n\n';
+ const notice='[FOLKLET truncated this tool output because it exceeded the 2,097,152-character limit. The excerpt below is incomplete and may not be valid JSON. Request a smaller result before relying on it.]\n\n';
  return notice+text.slice(0,limit-notice.length);
 }
 async function abortable(promise,signal){
@@ -39,7 +39,7 @@ export async function runApiAgent({connection,model,reasoningEffort='',modelMeta
  async function callTool(call){
   check(signal);onActivity('Using '+call.name);
   try{
-   if(!allowed.has(call.name))throw Error('This tool is not available in Crew.');
+   if(!allowed.has(call.name))throw Error('This tool is not available in FOLKLET.');
    const args=typeof call.arguments==='string'?JSON.parse(call.arguments):call.arguments;
    if(!args||typeof args!=='object'||Array.isArray(args))throw Error('Tool arguments must be an object.');
    const result=await abortable(Promise.resolve().then(()=>executeTool(call.name,args)),signal);check(signal);

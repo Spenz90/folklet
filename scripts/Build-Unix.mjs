@@ -14,9 +14,9 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const sha=async file=>{const hash=createHash('sha256');for await(const b of fs.createReadStream(file))hash.update(b);return hash.digest('hex');};
 export function assertNoLinks(file){let p=path.resolve(file);while(true){if(fs.lstatSync(p,{throwIfNoEntry:false})?.isSymbolicLink())throw Error('Build paths cannot contain links');const parent=path.dirname(p);if(p===parent)break;p=parent;}}
 export function archivePath(name){if(typeof name!=='string'||!name||name.includes('\\')||name.startsWith('/')||name.includes(':')||name.split('/').some(p=>p==='..'||p==='.')||name.includes('\0'))throw Error('Unsafe archive path');return name;}
-export function safeLink(name,target){archivePath(name);if(!target||target.includes('\\')||target.startsWith('/')||target.includes(':')||target.includes('\0'))throw Error('Unsafe archive link');const resolved=path.posix.resolve('/',path.posix.dirname(name),target);if(!resolved.startsWith('/Crew.app/'))throw Error('Archive link escapes the app');return target;}
+export function safeLink(name,target){archivePath(name);if(!target||target.includes('\\')||target.startsWith('/')||target.includes(':')||target.includes('\0'))throw Error('Unsafe archive link');const resolved=path.posix.resolve('/',path.posix.dirname(name),target);if(!resolved.startsWith('/Folklet.app/'))throw Error('Archive link escapes the app');return target;}
 export function brandPlist(text,version){
- const values={CFBundleName:'Crew',CFBundleDisplayName:'Crew',CFBundleIdentifier:'org.crew.desktop',CFBundleShortVersionString:version,CFBundleVersion:version,CFBundleIconFile:'crew.icns',LSMinimumSystemVersion:'15.0'};
+ const values={CFBundleName:'Folklet',CFBundleDisplayName:'Folklet',CFBundleIdentifier:'org.crew.desktop',CFBundleShortVersionString:version,CFBundleVersion:version,CFBundleIconFile:'crew.icns',LSMinimumSystemVersion:'15.0'};
  for(const [key,value] of Object.entries(values)){
   const escaped=value.replaceAll('&','&amp;').replaceAll('<','&lt;');
   const re=new RegExp(`(<key>${key}</key>\\s*)<string>[^<]*</string>`);
@@ -77,15 +77,15 @@ export function sourceWithoutRuntimeDuplicates(source,runtimeFiles){
 }
 export function unixArchiveReadme(platform){
  if(!platformManifest.platforms[platform])throw Error('Unknown desktop platform');
- const mac=platform.startsWith('darwin-'),guides=mac?'Crew.app/Contents/Resources/app/crew/':'resources/app/crew/';
- const title=mac?'Crew for Mac — '+(platform==='darwin-arm64'?'Apple Silicon':'Intel'):'Crew for Linux x64';
+ const mac=platform.startsWith('darwin-'),guides=mac?'Folklet.app/Contents/Resources/app/crew/':'resources/app/crew/';
+ const title=mac?'Folklet for Mac — '+(platform==='darwin-arm64'?'Apple Silicon':'Intel'):'Folklet for Linux x64';
  const start=mac?
-  'Requires macOS 15 or later and the matching Mac architecture. Extract the whole ZIP, keep Crew.app intact, and open Crew.app. You can move it to Applications.':
-  'Requires a Linux x64 desktop with glibc 2.38 or later, libtinfo.so.6 and Electron desktop libraries; Ubuntu 24.04 and Debian 13 are reference targets. Extract the whole ZIP, open a terminal in the Crew folder, and run `sh "./Start Crew.sh"`. Keep the entire folder together. This is not an Alpine package.';
+  'Requires macOS 15 or later and the matching Mac architecture. Extract the whole ZIP, keep Folklet.app intact, and open Folklet.app. You can move it to Applications.':
+  'Requires a Linux x64 desktop with glibc 2.38 or later, libtinfo.so.6 and Electron desktop libraries; Ubuntu 24.04 and Debian 13 are reference targets. Extract the whole ZIP, open a terminal in the Folklet folder, and run `sh "./Start Folklet.sh"`. Keep the entire folder together. This is not an Alpine package.';
  const preview=mac?
-  'This is a preview. Windows-assembled Mac downloads have not passed a Mac launch test or Apple signing step, and do not contain the compiled Mac native-control helper. See the release checks and Mac build/signing instructions before relying on this download. Do not disable macOS protections to launch it.':
-  'This is a preview assembled on Windows; it has not been launched or tested on a Linux desktop. See the release checks before relying on this download. Do not disable sandboxing to bypass a startup error.';
- return `# ${title}\n\n${start}\n\n${preview}\n\nOnce Crew opens, choose **My workspace → Quick start**, **Connections** or **Cloud hosting** for the in-app guides. Connect your ChatGPT account or an API provider, create a bot and send a small first task. The Codex desktop app is not required.\n\nBrowser tasks need an installed supported browser; **Crew → Install browser** downloads Crew's browser when needed. Keep this host awake for routines and phone access.\n\nOffline guides included in this archive:\n\n- [Quick start](${guides}QUICKSTART.md)\n- [Connections and models](${guides}PROVIDERS.md)\n- [Private cloud hosting](${guides}HOSTING.md)\n- [Preview checks and limitations](${guides}RELEASE-CHECKS.md)\n- [Build and signing instructions](${guides}RELEASING.md)\n\nThese links work relative to this README after extraction. The same guides are available inside Crew.\n`;
+  'This is a preview. A local ad-hoc signature is not Apple Developer ID signing or notarization. See the published release checks for native launch results and native-control helper availability, and read the Mac build/signing instructions before relying on this download. Do not disable macOS protections to launch it.':
+  'This is a preview. See the published release checks for tested systems and native desktop launch results before relying on this download. Do not disable sandboxing to bypass a startup error.';
+ return `# ${title}\n\n${start}\n\n${preview}\n\nOnce Folklet opens, choose **My workspace → Quick start**, **Connections** or **Cloud hosting** for the in-app guides. Connect your ChatGPT account or an API provider, create a bot and send a small first task. The Codex desktop app is not required.\n\nBrowser tasks need an installed supported browser; **Folklet → Install browser** downloads Folklet's browser when needed. Keep this host awake for routines and phone access.\n\nOffline guides included in this archive:\n\n- [Quick start](${guides}QUICKSTART.md)\n- [Connections and models](${guides}PROVIDERS.md)\n- [Private cloud hosting](${guides}HOSTING.md)\n- [Preview checks and limitations](${guides}RELEASE-CHECKS.md)\n- [Build and signing instructions](${guides}RELEASING.md)\n\nThese links work relative to this README after extraction. The same guides are available inside Folklet.\n`;
 }
 export async function buildUnix({platform,runtimeRoot,nativeHelper,cache=path.join(root,'.cache/electron'),output=path.join(root,'dist'),offline=false}={}){
  const manifest=JSON.parse(fs.readFileSync(path.join(root,'scripts/electron-releases.json'))),pin=manifest.platforms[platform];if(!pin)throw Error('Choose darwin-arm64, darwin-x64, or linux-x64');
@@ -104,7 +104,7 @@ export async function buildUnix({platform,runtimeRoot,nativeHelper,cache=path.jo
  if(nativeHelper){assertNoLinks(nativeHelper);if(!fs.statSync(nativeHelper).isFile())throw Error('Native Mac helper must be a regular file');const fd=fs.openSync(nativeHelper,'r'),header=Buffer.alloc(8);try{fs.readSync(fd,header,0,8,0);}finally{fs.closeSync(fd);}validateMacHelperHeader(header,platform);}
  const electron=await getElectron(pin,path.resolve(cache),offline),input=await openZip(electron),list=await entries(input);
  const version=JSON.parse(fs.readFileSync(path.join(root,'package.json'))).version;
- const base=isMac?'Crew.app/Contents/Resources/app':'Crew/resources/app',appBase=base+'/crew';
+ const base=isMac?'Folklet.app/Contents/Resources/app':'Folklet/resources/app',appBase=base+'/crew';
  const expectedMain=isMac?'Electron.app/Contents/MacOS/Electron':'electron';if(!list.some(e=>e.fileName===expectedMain))throw Error('Unexpected Electron archive layout');
  assertNoLinks(output);fs.mkdirSync(output,{recursive:true});const destination=path.join(path.resolve(output),pin.output);assertNoLinks(destination);assertNoLinks(destination+'.sha256');
  const temp=destination+'.'+randomUUID()+'.tmp',zip=new yazl.ZipFile();
@@ -117,7 +117,7 @@ export async function buildUnix({platform,runtimeRoot,nativeHelper,cache=path.jo
    // binaries and their signatures stay byte-for-byte unchanged.
    if(isMac&&old.startsWith('Electron.app/Contents/_CodeSignature/'))continue;
    if(/(?:^|\/)resources\/default_app\.asar$/i.test(old))continue;
-   const name=archivePath(isMac?(old.startsWith('Electron.app/')?old.replace(/^Electron\.app\//,'Crew.app/'):'Electron-Licenses/'+old):'Crew/'+(old==='electron'?'crew':old));
+   const name=archivePath(isMac?(old.startsWith('Electron.app/')?old.replace(/^Electron\.app\//,'Folklet.app/'):'Electron-Licenses/'+old):'Folklet/'+(old==='electron'?'crew':old));
    const mode=(entry.externalFileAttributes>>>16)||0o100644;
    if(isMac&&old==='Electron.app/Contents/Info.plist'){zip.addBuffer(Buffer.from(brandPlist((await entryBuffer(input,entry)).toString('utf8'),version)),name,{mode:0o100644});continue;}
    if((mode&0o170000)===0o120000){const link=(await entryBuffer(input,entry)).toString();safeLink(name,link);zip.addBuffer(Buffer.from(link),name,{mode:0o120777});continue;}
@@ -131,10 +131,10 @@ export async function buildUnix({platform,runtimeRoot,nativeHelper,cache=path.jo
   for(const item of runtimeFiles)zip.addFile(path.join(runtimeRoot,item.path),appBase+'/'+item.path,{mode:0o100000|item.mode});
   if(nativeHelper)zip.addFile(nativeHelper,appBase+'/native/macos-control',{mode:0o100755});
   zip.addFile(path.join(runtimeRoot,'runtime/platform-source.json'),appBase+'/runtime/platform-source.json',{mode:0o100644});
-  zip.addBuffer(Buffer.from(unixArchiveReadme(platform)),isMac?'README.md':'Crew/README.md',{mode:0o100644});
-  zip.addFile(path.join(root,'LICENSE'),isMac?'LICENSE':'Crew/CREW-LICENSE',{mode:0o100644});
-  if(isMac){const png=fs.readFileSync(path.join(root,'icons/crew-512.png'));const chunk=Buffer.alloc(8);chunk.write('ic09');chunk.writeUInt32BE(png.length+8,4);const header=Buffer.alloc(8);header.write('icns');header.writeUInt32BE(png.length+16,4);zip.addBuffer(Buffer.concat([header,chunk,png]),'Crew.app/Contents/Resources/crew.icns',{mode:0o100644});}
-  else zip.addBuffer(Buffer.from('#!/bin/sh\nset -eu\ncd -- "$(dirname -- "$0")"\nexec ./crew "$@"\n'),'Crew/Start Crew.sh',{mode:0o100755});
+  zip.addBuffer(Buffer.from(unixArchiveReadme(platform)),isMac?'README.md':'Folklet/README.md',{mode:0o100644});
+  zip.addFile(path.join(root,'LICENSE'),isMac?'LICENSE':'Folklet/CREW-LICENSE',{mode:0o100644});
+  if(isMac){const png=fs.readFileSync(path.join(root,'icons/crew-512.png'));const chunk=Buffer.alloc(8);chunk.write('ic09');chunk.writeUInt32BE(png.length+8,4);const header=Buffer.alloc(8);header.write('icns');header.writeUInt32BE(png.length+16,4);zip.addBuffer(Buffer.concat([header,chunk,png]),'Folklet.app/Contents/Resources/crew.icns',{mode:0o100644});}
+  else zip.addBuffer(Buffer.from('#!/bin/sh\nset -eu\ncd -- "$(dirname -- "$0")"\nexec ./crew "$@"\n'),'Folklet/Start Folklet.sh',{mode:0o100755});
   zip.end();await done;
  }catch(error){zip.outputStream.destroy(error);await done.catch(()=>{});throw error;}finally{input.close();}
  await verifyUnixArchive(temp,platform);fs.renameSync(temp,destination);
@@ -144,13 +144,13 @@ export async function buildUnix({platform,runtimeRoot,nativeHelper,cache=path.jo
 export async function verifyUnixArchive(file,platform){
  const zip=await openZip(file);try{
   const list=await entries(zip),map=new Map(list.map(e=>[e.fileName,e]));if(map.size!==list.length)throw Error('Duplicate release archive path');
-  const mac=platform.startsWith('darwin-'),base=mac?'Crew.app/Contents/Resources/app':'Crew/resources/app';
+  const mac=platform.startsWith('darwin-'),base=mac?'Folklet.app/Contents/Resources/app':'Folklet/resources/app';
   for(const entry of list){archivePath(entry.fileName);if(/(^|\/)(data|profile|browser-profiles|\.env|auth\.json)(\/|$)/i.test(entry.fileName))throw Error('Private data in desktop archive');if(((entry.externalFileAttributes>>>16)&0o170000)===0o120000)safeLink(entry.fileName,(await entryBuffer(zip,entry)).toString());}
   for(const name of [base+'/main.cjs',base+'/host.cjs',base+'/policy.cjs',base+'/smoke.cjs',base+'/package.json',base+'/crew/server.mjs',base+'/crew/http.mjs',base+'/crew/runtime/platform-source.json',base+'/crew/node_modules/playwright/package.json'])if(!map.has(name))throw Error('Missing release file: '+name);
-  const readmeName=mac?'README.md':'Crew/README.md',readmeEntry=map.get(readmeName);if(!readmeEntry)throw Error('Missing desktop start instructions');
+  const readmeName=mac?'README.md':'Folklet/README.md',readmeEntry=map.get(readmeName);if(!readmeEntry)throw Error('Missing desktop start instructions');
   const readme=(await entryBuffer(zip,readmeEntry)).toString('utf8');
   for(const [,link] of readme.matchAll(/\]\(([^)]+)\)/g)){archivePath(link);const target=path.posix.join(path.posix.dirname(readmeName),link);if(!map.has(target))throw Error('Broken desktop guide link: '+link);}
-  for(const name of [mac?'Crew.app/Contents/MacOS/Electron':'Crew/crew',base+'/crew/runtime/node',base+'/crew/runtime/codex/bin/codex']){const entry=map.get(name);if(!entry||!((entry.externalFileAttributes>>>16)&0o111))throw Error('Missing Unix executable mode: '+name);}
+  for(const name of [mac?'Folklet.app/Contents/MacOS/Electron':'Folklet/crew',base+'/crew/runtime/node',base+'/crew/runtime/codex/bin/codex']){const entry=map.get(name);if(!entry||!((entry.externalFileAttributes>>>16)&0o111))throw Error('Missing Unix executable mode: '+name);}
   const receipt=JSON.parse((await entryBuffer(zip,map.get(base+'/crew/runtime/platform-source.json'))).toString('utf8'));
   for(const item of validateRuntimeReceipt(receipt,platform)){
    const entry=map.get(base+'/crew/'+item.path);if(!entry||((entry.externalFileAttributes>>>16)&0o777)!==item.mode)throw Error('Runtime mode mismatch: '+item.path);

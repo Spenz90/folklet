@@ -22,7 +22,7 @@ export function createModelSettingsUI({api,modal,refresh,getBots}){
    if(!live(state)||serial!==state.serial)return;state.models=data.models||[];state.options=data.options||[{value:'',label:'Default'}];
    if(!state.options.some(o=>o.value===state.effort))state.effort='';
    $('reasoning-choices').innerHTML=state.options.map(option=>'<button type="button" class="reasoning-choice" data-reasoning-level="'+esc(option.value)+'" aria-pressed="'+(option.value===state.effort)+'"'+(option.description?' title="'+esc(option.description)+'"':'')+'>'+esc(option.label)+'</button>').join('');
-   $('reasoning-help').textContent=state.options.length>1?'Higher effort can take longer and use more tokens. Default follows your connection’s configuration.':state.providerId==='codex'&&!model?'Choose a named model to customize reasoning. Default model follows your Codex configuration.':'This model or connection does not advertise adjustable reasoning. Crew will use its default.';
+   $('reasoning-help').textContent=state.options.length>1?'Higher effort can take longer and use more tokens. Default follows your connection’s configuration.':state.providerId==='codex'&&!model?'Choose a named model to customize reasoning. Default model follows your Codex configuration.':'This model or connection does not advertise adjustable reasoning. FOLKLET will use its default.';
    $('model-catalog-note').textContent=data.notice||'';$('modal-error').textContent='';modelRows(state);$('save-model-settings').disabled=false;
   }catch(e){if(live(state)&&serial===state.serial){$('reasoning-choices').innerHTML='<button type="button" class="btn" data-retry-model-options>Try loading again</button>';error(e);}}
  }

@@ -21,7 +21,7 @@ function loginURL(value){
  */
 export class AccountConnection {
   constructor({executable,spawnProcess=spawn,cwd,env=process.env,requestTimeoutMs=15000,loginTimeoutMs=600000,onChange=()=>{},now=Date.now}={}){
-    if(typeof executable!=='string'||!executable.trim())throw accountError('Crew could not find its Codex runtime.','RUNTIME_MISSING');
+    if(typeof executable!=='string'||!executable.trim())throw accountError('FOLKLET could not find its Codex runtime.','RUNTIME_MISSING');
     this.executable=executable;this.spawnProcess=spawnProcess;this.cwd=cwd;this.env=env;
     this.requestTimeoutMs=Math.max(1,Number(requestTimeoutMs)||15000);
     this.loginTimeoutMs=Math.max(1,Number(loginTimeoutMs)||600000);
@@ -46,20 +46,20 @@ export class AccountConnection {
       if(this.closed||connection.closed)throw accountError('The account connection is closed.','CLOSED');
       let proc;
       try{proc=this.spawnProcess(this.executable,['app-server'],{cwd:this.cwd,env:this.env,windowsHide:true,stdio:['pipe','pipe','pipe']});}
-      catch{throw accountError('Crew could not start its Codex runtime. Check that setup has finished.','RUNTIME_START_FAILED');}
+      catch{throw accountError('FOLKLET could not start its Codex runtime. Check that setup has finished.','RUNTIME_START_FAILED');}
       connection.process=proc;
-      proc.on('error',()=>this.disconnect(connection,accountError('Crew could not start its Codex runtime. Check that setup has finished.','RUNTIME_START_FAILED')));
+      proc.on('error',()=>this.disconnect(connection,accountError('FOLKLET could not start its Codex runtime. Check that setup has finished.','RUNTIME_START_FAILED')));
       proc.on('close',()=>this.disconnect(connection,accountError('The Codex account connection stopped. Try again.','DISCONNECTED')));
       proc.on('exit',()=>this.disconnect(connection,accountError('The Codex account connection stopped. Try again.','DISCONNECTED')));
       proc.stderr.on('data',()=>{});
       proc.stdin.on('error',()=>this.disconnect(connection,accountError('The Codex account connection stopped. Try again.','DISCONNECTED')));
       connection.reader=readline.createInterface({input:proc.stdout});
       connection.reader.on('line',line=>this.receive(connection,line));
-      await this.rpc(connection,'initialize',{clientInfo:{name:'crew_account',title:'Crew',version:'0.6.1'},capabilities:{}});
+      await this.rpc(connection,'initialize',{clientInfo:{name:'crew_account',title:'FOLKLET',version:'0.6.1'},capabilities:{}});
       this.write(connection,{method:'initialized',params:{}});
       return connection;
     }).catch(error=>{
-      const safe=error?.code?error:accountError('Crew could not initialize its Codex account connection.','INITIALIZE_FAILED');
+      const safe=error?.code?error:accountError('FOLKLET could not initialize its Codex account connection.','INITIALIZE_FAILED');
       this.disconnect(connection,safe);throw safe;
     });
     return connection.ready;
@@ -94,7 +94,7 @@ export class AccountConnection {
       return;
     }
     if(message.id!==undefined){
-      try{this.write(connection,{id:message.id,error:{code:-32601,message:'Crew supports Codex-managed ChatGPT sign-in only.'}});}catch{}
+      try{this.write(connection,{id:message.id,error:{code:-32601,message:'FOLKLET supports Codex-managed ChatGPT sign-in only.'}});}catch{}
       return;
     }
     const params=message.params||{};
@@ -148,7 +148,7 @@ export class AccountConnection {
         // A notification delivered alongside the response can be newer than it.
         if(revision===this.accountRevision)this.account={connected:!!type,type,plan:safePlan(result?.account?.planType),requiresOpenaiAuth:result?.requiresOpenaiAuth!==false};
         this.lastError=null;
-      }catch(error){this.lastError=error?.code?error.message:'Crew could not read the Codex account. Try again.';}
+      }catch(error){this.lastError=error?.code?error.message:'FOLKLET could not read the Codex account. Try again.';}
       return this.snapshot();
     })();
     this.statusPromise=work;

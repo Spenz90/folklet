@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {resolveCrewEngine,crewEngineEnvironment} from './runtime.mjs';
 
-test('Crew uses its packaged engine and never discovers a Codex desktop installation',t=>{
+test('FOLKLET uses its packaged engine and never discovers a Codex desktop installation',t=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'crew-runtime-test-'));
  t.after(()=>{assert.equal(path.dirname(path.resolve(dir)),path.resolve(os.tmpdir()));assert.ok(path.basename(dir).startsWith('crew-runtime-test-'));fs.rmSync(dir,{recursive:true,force:true});});
  const external=path.join(dir,'external-codex.exe');fs.writeFileSync(external,'not executable');

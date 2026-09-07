@@ -11,7 +11,7 @@ function smokeOptions(argv=[],env={}){
  for(let current=path.resolve(root);;){if(fs.lstatSync(current,{throwIfNoEntry:false})?.isSymbolicLink())throw Error('Smoke root cannot contain links.');const parent=path.dirname(current);if(parent===current)break;current=parent;}
  return {root,report,hostPid};
 }
-function validSmokePage(page){return page?.title==='Crew'&&page.app===true&&page.main===true&&page.rendered===true&&page.tokenPresent===true&&page.nodeAbsent===true;}
+function validSmokePage(page){return page?.title==='FOLKLET'&&page.app===true&&page.main===true&&page.rendered===true&&page.tokenPresent===true&&page.nodeAbsent===true;}
 const pageExpression=`({title:document.title,app:!!document.getElementById('app'),main:!!document.querySelector('main'),rendered:!!document.querySelector('#page .team-home'),tokenPresent:typeof window.CREW_TOKEN==='string'&&window.CREW_TOKEN.length===64,nodeAbsent:typeof require==='undefined'&&typeof process==='undefined'})`;
 async function captureSmoke(contents,options,{exit,timeout=20000}={}){
  const deadline=Date.now()+timeout;let page;

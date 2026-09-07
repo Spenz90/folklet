@@ -36,7 +36,7 @@ export function assertInstallTargets(plan){
   noLinks(item.file);
   if(fs.existsSync(item.file)){
    const stat=fs.statSync(item.file);
-   if(!stat.isFile()||stat.nlink!==1||fs.readFileSync(item.file,'utf8')!==item.text)throw Error('Existing Crew service files differ. Keep them, or review and move them before reinstalling.');
+   if(!stat.isFile()||stat.nlink!==1||fs.readFileSync(item.file,'utf8')!==item.text)throw Error('Existing FOLKLET service files differ. Keep them, or review and move them before reinstalling.');
   }
  }
 }
@@ -47,12 +47,12 @@ function systemctl(args){
 }
 export function installService({dryRun=false}={}){
  if(process.platform!=='linux'||process.arch!=='x64')throw Error('This service installer targets Ubuntu 24.04 on x64.');
- if(typeof process.getuid==='function'&&process.getuid()===0)throw Error('Sign in as a regular user. Crew must not run as root.');
+ if(typeof process.getuid==='function'&&process.getuid()===0)throw Error('Sign in as a regular user. FOLKLET must not run as root.');
  const osRelease=fs.readFileSync('/etc/os-release','utf8');
  if(!/^ID=ubuntu$/m.test(osRelease)||!/^VERSION_ID="?24\.04"?$/m.test(osRelease))throw Error('This service installer targets Ubuntu 24.04. Review HOSTING.md before adapting it for another distribution.');
  const home=os.homedir();
  for(const file of ['server.mjs','runtime/node','runtime/codex/bin/codex','node_modules/playwright/package.json']){
-  const full=path.join(appRoot,file);noLinks(full);if(!fs.statSync(full).isFile())throw Error('Crew setup is incomplete. Run sh Setup.sh --skip-browser first.');
+  const full=path.join(appRoot,file);noLinks(full);if(!fs.statSync(full).isFile())throw Error('FOLKLET setup is incomplete. Run sh Setup.sh --skip-browser first.');
  }
  fs.accessSync(path.join(appRoot,'runtime/node'),fs.constants.X_OK);
  fs.accessSync(path.join(appRoot,'runtime/codex/bin/codex'),fs.constants.X_OK);
@@ -74,7 +74,7 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
   const args=process.argv.slice(2);
   if(args.length>1||args.some(arg=>arg!=='--dry-run'))throw Error('Usage: sh hosting/install-user-service.sh [--dry-run]');
   const result=installService({dryRun:args.includes('--dry-run')});
-  console.log(result.dryRun?'Setup preview passed. No files or services changed.':'Service files installed. Crew has not been started.');
+  console.log(result.dryRun?'Setup preview passed. No files or services changed.':'Service files installed. FOLKLET has not been started.');
   console.log('When ready: systemctl --user enable --now crew.service');
  }catch(error){console.error(error.message);process.exitCode=1;}
 }

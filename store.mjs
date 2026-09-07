@@ -55,7 +55,7 @@ export function nextOccurrence(r,now=Date.now()){
 }
 export class Store {
  constructor(root){root=path.resolve(root);this.root=root;fs.mkdirSync(root,{recursive:true});this.file=path.join(root,'crew.json');
-  const databaseStat=fs.lstatSync(this.file,{throwIfNoEntry:false});if(databaseStat&&(databaseStat.isSymbolicLink()||!databaseStat.isFile()||databaseStat.nlink>1))throw Error('Crew storage must be a regular private file, not a link.');
+  const databaseStat=fs.lstatSync(this.file,{throwIfNoEntry:false});if(databaseStat&&(databaseStat.isSymbolicLink()||!databaseStat.isFile()||databaseStat.nlink>1))throw Error('FOLKLET storage must be a regular private file, not a link.');
   if(fs.existsSync(this.file))this.db=JSON.parse(fs.readFileSync(this.file,'utf8'));
   else {const old=path.join(root,'bots.json');this.db={bots:fs.existsSync(old)?JSON.parse(fs.readFileSync(old,'utf8')):[],tasks:[],routines:[],channels:[],notifications:[]};}
   for(const b of this.db.bots){
@@ -65,7 +65,7 @@ export class Store {
    if(parts.at(-2)?.toLowerCase()==='workspaces'&&parts.at(-1)===b.id&&/^[a-z\d_-]+$/i.test(b.id)){
     const local=path.join(root,'workspaces',b.id);
     if(path.resolve(b.cwd)!==local){
-     if(!fs.existsSync(local))throw Error('A copied bot workspace is missing. Restore the entire data folder, including its workspaces folder, before starting Crew.');
+     if(!fs.existsSync(local))throw Error('A copied bot workspace is missing. Restore the entire data folder, including its workspaces folder, before starting FOLKLET.');
      b.cwd=local;
     }
    }
@@ -78,8 +78,8 @@ export class Store {
  }
  save(){
   const temporary=this.file+'.'+uid()+'.tmp';let text;
-  try{const stat=fs.lstatSync(this.file,{throwIfNoEntry:false});if(stat&&(stat.isSymbolicLink()||!stat.isFile()||stat.nlink>1))throw Error('Crew storage must be a regular private file, not a link.');text=JSON.stringify(this.db,null,2);fs.writeFileSync(temporary,text,{flag:'wx',mode:0o600});fs.renameSync(temporary,this.file);this.lastSaved=text;}
-  catch(error){if(this.lastSaved)this.db=restoreValue(this.db,JSON.parse(this.lastSaved));throw Object.assign(Error('Crew could not save its data. Check the data folder’s permissions and free disk space, then retry.',{cause:error}),{code:'CREW_STORAGE'});}
+  try{const stat=fs.lstatSync(this.file,{throwIfNoEntry:false});if(stat&&(stat.isSymbolicLink()||!stat.isFile()||stat.nlink>1))throw Error('FOLKLET storage must be a regular private file, not a link.');text=JSON.stringify(this.db,null,2);fs.writeFileSync(temporary,text,{flag:'wx',mode:0o600});fs.renameSync(temporary,this.file);this.lastSaved=text;}
+  catch(error){if(this.lastSaved)this.db=restoreValue(this.db,JSON.parse(this.lastSaved));throw Object.assign(Error('FOLKLET could not save its data. Check the data folder’s permissions and free disk space, then retry.',{cause:error}),{code:'CREW_STORAGE'});}
   finally{try{if(fs.existsSync(temporary))fs.unlinkSync(temporary);}catch{}}
  }
  bot(id){const b=this.db.bots.find(b=>b.id===id&&!b.archived);if(!b)throw Error('Bot not found');return b;}

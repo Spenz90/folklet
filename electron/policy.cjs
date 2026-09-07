@@ -10,7 +10,7 @@ function isCrewResource(value){return isCrewOrigin(value)||(typeof value==='stri
 function externalWebLink(value){const url=webURL(value);return url&&!isCrewOrigin(value)?url.href:null;}
 function parseHealth(value){return value&&value.app==='Crew'&&Number.isInteger(value.version)&&value.version>=5&&Number.isInteger(value.pid)&&value.pid>0?{pid:value.pid,version:value.version}:null;}
 function tokenFromHTML(html){
- if(typeof html!=='string'||!/<title>Crew<\/title>/i.test(html)||!html.includes('id="app"')||!html.includes('src="/app.js"'))return null;
+ if(typeof html!=='string'||!/<title>(?:Crew|FOLKLET)<\/title>/i.test(html)||!html.includes('id="app"')||!html.includes('src="/app.js"'))return null;
  return /window\.CREW_TOKEN\s*=\s*['"]([a-f0-9]{64})['"]/i.exec(html)?.[1]||null;
 }
 module.exports={HOME_URL,isCrewOrigin,isCrewResource,externalWebLink,parseHealth,tokenFromHTML};

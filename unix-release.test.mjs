@@ -9,9 +9,9 @@ function receipt(platform){
  return {schemaVersion:1,platform,sources:Object.fromEntries(['node','codex'].map(name=>[name,{url:target[name].url,sha256:target[name].sha256}])),files:expectedRuntimeFiles(platform)};
 }
 test('Unix archives reject traversal and escaping framework symlinks',()=>{
- for(const name of ['/outside','../outside','Crew/../outside','C:/outside','Crew\\outside','Crew/./outside','Crew/\0'])assert.throws(()=>archivePath(name));
- assert.equal(safeLink('Crew.app/Contents/Frameworks/Test.framework/Versions/Current','A'),'A');
- for(const value of ['../../../../../../outside','/outside','C:/outside','../\\outside'])assert.throws(()=>safeLink('Crew.app/Contents/Frameworks/Current',value));
+ for(const name of ['/outside','../outside','Folklet/../outside','C:/outside','Folklet\\outside','Folklet/./outside','Folklet/\0'])assert.throws(()=>archivePath(name));
+ assert.equal(safeLink('Folklet.app/Contents/Frameworks/Test.framework/Versions/Current','A'),'A');
+ for(const value of ['../../../../../../outside','/outside','C:/outside','../\\outside'])assert.throws(()=>safeLink('Folklet.app/Contents/Frameworks/Current',value));
 });
 test('runtime receipts must exactly match publisher pins, file membership and executable modes',()=>{
  for(const platform of ['darwin-arm64','darwin-x64','linux-x64']){
@@ -36,19 +36,19 @@ test('Mac helper packaging refuses a mismatched architecture or non-Mach-O execu
  }
  assert.throws(()=>validateMacHelperHeader(Buffer.from('MZ'), 'darwin-arm64'));
 });
-test('Mac outer application metadata carries Crew identity and full runtime minimum',()=>{
+test('Mac outer application metadata carries Folklet identity and full runtime minimum',()=>{
  const result=brandPlist('<plist><dict><key>CFBundleName</key><string>Electron</string></dict></plist>','0.6.0');
- assert.match(result,/<key>CFBundleName<\/key>\s*<string>Crew<\/string>/);
+ assert.match(result,/<key>CFBundleName<\/key>\s*<string>Folklet<\/string>/);
  assert.match(result,/<key>LSMinimumSystemVersion<\/key>\s*<string>15.0<\/string>/);
  assert.match(result,/<string>org.crew.desktop<\/string>/);
 });
 test('download start pages use the correct platform launcher and guide paths inside each archive',()=>{
  for(const platform of ['darwin-arm64','darwin-x64','linux-x64']){
-  const readme=unixArchiveReadme(platform),prefix=platform.startsWith('darwin-')?'Crew.app/Contents/Resources/app/crew/':'resources/app/crew/';
+  const readme=unixArchiveReadme(platform),prefix=platform.startsWith('darwin-')?'Folklet.app/Contents/Resources/app/crew/':'resources/app/crew/';
   const links=[...readme.matchAll(/\]\(([^)]+)\)/g)].map(match=>match[1]);assert.equal(links.length,5);
   for(const link of links){assert.ok(link.startsWith(prefix));assert.ok(sourceFiles.includes(link.slice(prefix.length)),link);}
   assert.match(readme,/My workspace → Quick start/);assert.match(readme,/preview/);
-  if(platform==='linux-x64'){assert.match(readme,/Start Crew\.sh/);assert.match(readme,/glibc 2\.38/);}
-  else{assert.match(readme,/open Crew\.app/);assert.match(readme,/macOS 15/);}
+  if(platform==='linux-x64'){assert.match(readme,/Start Folklet\.sh/);assert.match(readme,/glibc 2\.38/);}
+  else{assert.match(readme,/open Folklet\.app/);assert.match(readme,/macOS 15/);}
  }
 });

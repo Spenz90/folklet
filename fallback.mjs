@@ -39,7 +39,7 @@ export function failureSummary(error){
  if(status===429||/rate limit/i.test(text))return 'This connection temporarily reached its request limit.';
  if(status===408||/timeout|timed out/i.test(text))return 'This connection did not respond in time.';
  if(status>=500&&status<=599||/temporarily unavailable/i.test(text))return 'This provider is temporarily unavailable.';
- if(/ECONN|ENET|EHOST|EAI_AGAIN|network|fetch failed/i.test(text))return 'Crew could not reach this connection.';
+ if(/ECONN|ENET|EHOST|EAI_AGAIN|network|fetch failed/i.test(text))return 'FOLKLET could not reach this connection.';
  return 'This connection could not complete the request.';
 }
 

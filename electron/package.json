@@ -1,0 +1,9 @@
+{
+  "name": "crew-desktop",
+  "productName": "Crew",
+  "version": "0.6.1",
+  "private": true,
+  "description": "Crew desktop shell for macOS and Linux",
+  "main": "main.cjs",
+  "scripts": { "test": "node --test shell.test.cjs" }
+}

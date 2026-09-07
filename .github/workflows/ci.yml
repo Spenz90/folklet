@@ -1,0 +1,119 @@
+name: Checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2025
+            platform: win32-x64
+            archive: Crew-Windows.zip
+          - runner: macos-15
+            platform: darwin-arm64
+            arch: arm64
+            archive: Crew-Mac-AppleSilicon.zip
+          - runner: macos-15-intel
+            platform: darwin-x64
+            arch: x64
+            archive: Crew-Mac-Intel.zip
+          - runner: ubuntu-24.04
+            platform: linux-x64
+            archive: Crew-Linux-x64.zip
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --omit=optional --no-audit --fund=false
+      - run: npm audit --omit=optional
+      - run: npm test
+      - name: Check locked package provenance and distributed notices
+        run: node scripts/Check-Release.mjs --dependencies-only
+      - name: Validate public source allowlist
+        run: node scripts/release-files.mjs . Source
+      - name: Build Windows runtime, wrapper and native helper
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./Setup.ps1
+      - name: Build and inspect Windows and source archives
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./scripts/Package.ps1 -Kind Source
+          ./scripts/Package.ps1 -Kind Windows
+      - name: Check Unix source scripts
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          sh -n Setup.sh
+          sh -n native/Build-macOS.sh
+          sh -n hosting/install-user-service.sh
+          sh -n hosting/start-host.sh
+      - name: Compile matching Mac native helper
+        if: runner.os == 'macOS'
+        run: sh native/Build-macOS.sh --arch ${{ matrix.arch }}
+      - name: Assemble verified Unix runtime
+        if: runner.os != 'Windows'
+        run: node scripts/Install-Platform.mjs --platform ${{ matrix.platform }} --root .build/runtime --cache .cache/crew-setup
+      - name: Check bundled Unix executable startup without signing in
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          .build/runtime/runtime/node --version
+          .build/runtime/runtime/codex/bin/codex --version
+          .build/runtime/runtime/codex/codex-path/rg --version
+          .build/runtime/runtime/codex/codex-resources/zsh/bin/zsh --version
+      - name: Build and inspect Unix desktop archive
+        if: runner.os != 'Windows'
+        run: node scripts/Build-Unix.mjs --platform ${{ matrix.platform }} --runtime-root .build/runtime
+      - name: Apply and verify a local Mac ad-hoc signature
+        if: runner.os == 'macOS'
+        run: node scripts/Sign-Mac.mjs --archive dist/${{ matrix.archive }} --platform ${{ matrix.platform }}
+      - name: Prepare exact Linux corresponding source for distribution
+        if: runner.os == 'Linux'
+        run: node scripts/Prepare-Corresponding-Source.mjs
+      - name: Launch the extracted desktop with an empty private workspace
+        if: runner.os != 'Linux'
+        run: node scripts/Smoke-Desktop.mjs --platform ${{ matrix.platform }} --archive dist/${{ matrix.archive }}
+      - name: Launch the extracted Linux desktop under Xvfb
+        if: runner.os == 'Linux'
+        run: xvfb-run -a node scripts/Smoke-Desktop.mjs --platform ${{ matrix.platform }} --archive dist/${{ matrix.archive }}
+      - name: Gate preview artifacts on matching native startup evidence
+        run: node scripts/Check-Release.mjs --platform ${{ matrix.platform }} --channel preview
+      - name: Retain isolated startup evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: startup-evidence-${{ matrix.platform }}
+          path: |
+            test-results/*-smoke.json
+            test-results/*-smoke.png
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Retain checked preview downloads
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: checked-preview-${{ matrix.platform }}
+          compression-level: 0
+          path: |
+            dist/*.zip
+            dist/*.sha256
+            dist/Crew-Linux-Corresponding-Source.tar.gz
+            dist/Crew-Linux-Corresponding-Source.json
+          if-no-files-found: error
+          retention-days: 14

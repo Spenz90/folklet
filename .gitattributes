@@ -1,0 +1,16 @@
+* text=auto
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.sh text eol=lf
+*.swift text eol=lf
+*.service text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.png binary
+*.ico binary

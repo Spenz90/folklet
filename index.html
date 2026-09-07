@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#070707">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Crew">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="icon" href="/icons/crew.ico">
+  <title>Crew</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="app">
+    <aside class="sidebar" aria-label="Conversations">
+      <div class="workspace">
+        <span class="app-name">Crew</span>
+        <button class="icon-btn" id="new-bot" aria-label="New conversation" title="New conversation">+</button>
+      </div>
+      <div class="roster-search">
+        <button id="search-button" aria-label="Search all work" title="Search all work (Ctrl K)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 5 5"/></svg></button>
+        <input id="roster-filter" aria-label="Search conversations" placeholder="Search" autocomplete="off">
+      </div>
+      <div class="sidebar-conversations"><div id="bots"></div><div id="channels"></div></div>
+      <nav id="nav" hidden></nav>
+      <div class="sidebar-footer">
+        <button class="utility-link" data-nav="inbox"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 5h14l2 12v3H3v-3zM3 16h5l2 3h4l2-3h5"/></svg><span>Activity</span><small id="inbox-count" class="hidden"></small></button>
+        <button class="profile-button" id="profile-menu"><span class="profile-avatar">C</span><span>My workspace</span><span class="profile-chevron">⌄</span></button>
+      </div>
+    </aside>
+    <main><header id="header"></header><div id="page"></div><nav id="phone-nav" class="phone-nav" aria-label="Crew navigation"></nav></main>
+    <aside id="inspector" class="inspector hidden" aria-label="Bot workspace"></aside>
+  </div>
+  <div id="toast" role="alert" class="hidden"></div>
+  <dialog id="modal" aria-labelledby="modal-title" aria-describedby="modal-subtitle"><div id="modal-content"></div></dialog>
+  <input type="file" id="file-input" hidden>
+  <div hidden><button id="add-top"></button><button id="add-bottom"></button><button id="new-channel"></button><button id="about"></button></div>
+  <script>window.CREW_TOKEN='__TOKEN__';</script>
+  <script type="module" src="/app.js"></script>
+  <script src="/pwa.js" defer></script>
+</body>
+</html>

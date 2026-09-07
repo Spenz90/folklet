@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="crew-offline" content="public-v1">
+  <meta name="theme-color" content="#070707">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <title>Crew · Connection unavailable</title>
+  <style>
+    :root{color-scheme:dark;font:16px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#070707;color:#f2f2f2}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:calc(32px + env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left))}
+    main{width:min(100%,360px);text-align:center}img{display:block;width:88px;height:88px;margin:0 auto 30px;border-radius:22px}
+    .status{display:inline-flex;align-items:center;gap:7px;border:1px solid #2d2737;border-radius:99px;padding:5px 11px;font-size:11px;letter-spacing:.02em;color:#beadd8}
+    .status::before{content:'';height:5px;width:5px;border-radius:50%;background:#a181d0}h1{font-size:27px;line-height:1.2;font-weight:550;letter-spacing:-.025em;margin:18px 0 12px}p{color:#a0a0a0;margin:0;font-size:15px;line-height:1.6}
+    a{display:flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;color:#151515;background:#f2f2f2;font-weight:550;font-size:14px;border-radius:12px;min-height:48px;margin-top:28px;padding:12px 18px}a:hover{background:#fff}a:focus-visible{outline:3px solid #ac85ff;outline-offset:4px}
+    small{display:block;margin-top:18px;color:#646464;font-size:11px}
+  </style>
+</head>
+<body>
+  <main>
+    <img src="/icons/crew-192.png" width="88" height="88" alt="Crew">
+    <span class="status">Connection unavailable</span>
+    <h1>Let’s reconnect.</h1>
+    <p>Crew can’t reach your host. Keep Tailscale connected on both devices and Crew running on your computer or server.</p>
+    <a href="/">Try again <span aria-hidden="true">↗</span></a>
+    <small>Your bots run on your computer or server.</small>
+  </main>
+</body>
+</html>

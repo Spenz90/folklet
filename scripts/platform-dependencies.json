@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "nodeVersion": "24.19.0",
+  "codexVersion": "0.153.4",
+  "codexCommit": "3d2ee51ca2d5db578f328aa75e20aa22c0197c9a",
+  "checksumSources": {
+    "node": "https://nodejs.org/dist/v24.19.0/SHASUMS256.txt",
+    "codex": "https://api.github.com/repos/openai/codex/releases/tags/rust-v0.153.4"
+  },
+  "platforms": {
+    "darwin-arm64": {
+      "os": "darwin",
+      "arch": "arm64",
+      "minimum": {
+        "macOS": "15.0"
+      },
+      "node": {
+        "version": "24.19.0",
+        "url": "https://nodejs.org/dist/v24.19.0/node-v24.19.0-darwin-arm64.tar.gz",
+        "sha256": "8294b7aa9b03997481c06babf1e8b270c859358f27da57a11509afe537ac381d",
+        "archiveRoot": "node-v24.19.0-darwin-arm64",
+        "executableSha256": "27db838bb204ef7c21df2931f5656e4c8fb32e6e947f363a402b49714d32b5b1",
+        "licenseSha256": "148eacf7863ef4329224a29398623077200a27194aa075569faf4a0a85566ca5"
+      },
+      "codex": {
+        "version": "0.153.4",
+        "target": "aarch64-apple-darwin",
+        "url": "https://github.com/openai/codex/releases/download/rust-v0.153.4/codex-package-aarch64-apple-darwin.tar.gz",
+        "sha256": "35438da1fbf7a6db7ddb3bcec84448fa6015ba188461472a97d9d1da7d9c4353",
+        "files": [
+          {
+            "file": "bin/codex",
+            "sha256": "b973d440acac501fd2594a43e7ca9ce41e0a65b9dfb28d0d7a7837c99e1261e3",
+            "executable": true
+          },
+          {
+            "file": "bin/codex-code-mode-host",
+            "sha256": "d8a2222e017342718d16a5dbe092921c628961f812f62f42036b8d960e1ffe56",
+            "executable": true
+          },
+          {
+            "file": "codex-package.json",
+            "sha256": "d9ca6b160a46bf8e06748df83ccadb91418ded2d1c35045518b7305f866c9a54",
+            "executable": false
+          },
+          {
+            "file": "codex-path/rg",
+            "sha256": "3969d598288585478bd9b2fd6c9f7e120b711cf96c5a03844d0197ea6abec346",
+            "executable": true
+          },
+          {
+            "file": "codex-resources/zsh/bin/zsh",
+            "sha256": "712ebaa416a7505fe6719ba99440ae3125423ce46d42d0174963553d81f3f8f1",
+            "executable": true
+          }
+        ]
+      }
+    },
+    "darwin-x64": {
+      "os": "darwin",
+      "arch": "x64",
+      "minimum": {
+        "macOS": "15.0"
+      },
+      "node": {
+        "version": "24.19.0",
+        "url": "https://nodejs.org/dist/v24.19.0/node-v24.19.0-darwin-x64.tar.gz",
+        "sha256": "d1b5e999db158c62fe8f7267a4476b035d8bd93b1a605bac24a3f0dd166e3316",
+        "archiveRoot": "node-v24.19.0-darwin-x64",
+        "executableSha256": "1052eb9c7d6c60a79b968e09f75af55a73462b0f6dff0964336d63b5e13eb63c",
+        "licenseSha256": "148eacf7863ef4329224a29398623077200a27194aa075569faf4a0a85566ca5"
+      },
+      "codex": {
+        "version": "0.153.4",
+        "target": "x86_64-apple-darwin",
+        "url": "https://github.com/openai/codex/releases/download/rust-v0.153.4/codex-package-x86_64-apple-darwin.tar.gz",
+        "sha256": "3ee638d7155c856ef31f3f4a85cb2195de1939962d3924c935b24f0514564a3d",
+        "files": [
+          {
+            "file": "bin/codex",
+            "sha256": "88ecd2cbf8044832a49e7710394d9d328f7205fa5e8c8ebbdd015e002b4f6e21",
+            "executable": true
+          },
+          {
+            "file": "bin/codex-code-mode-host",
+            "sha256": "39d63b08ca16a9bf7b07a1549e0c288a7a1ff69b971cd31d6960c3536c1c8ccb",
+            "executable": true
+          },
+          {
+            "file": "codex-package.json",
+            "sha256": "26d66eb80ac7646a23d070140712673e8f9c93f0714272b29732c3cbf603f7ee",
+            "executable": false
+          },
+          {
+            "file": "codex-path/rg",
+            "sha256": "30bf3e89d7f3dab98615bb21c401e5b2928f3a312d82e1b209f7ed4d513d0521",
+            "executable": true
+          },
+          {
+            "file": "codex-resources/zsh/bin/zsh",
+            "sha256": "3e7fe9663d251941442590b6656df301fb972088c1e17a35339428428a572926",
+            "executable": true
+          }
+        ]
+      }
+    },
+    "linux-x64": {
+      "os": "linux",
+      "arch": "x64",
+      "minimum": {
+        "glibc": "2.38",
+        "libraries": [
+          "libtinfo.so.6"
+        ],
+        "referenceDistributions": [
+          "Ubuntu 24.04",
+          "Debian 13"
+        ]
+      },
+      "node": {
+        "version": "24.19.0",
+        "url": "https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-x64.tar.gz",
+        "sha256": "f625d97cd707df4ff96254916fbc5ff014f09c09effe5a1e0ca8f6d41a8789d4",
+        "archiveRoot": "node-v24.19.0-linux-x64",
+        "executableSha256": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12",
+        "licenseSha256": "148eacf7863ef4329224a29398623077200a27194aa075569faf4a0a85566ca5"
+      },
+      "codex": {
+        "version": "0.153.4",
+        "target": "x86_64-unknown-linux-musl",
+        "url": "https://github.com/openai/codex/releases/download/rust-v0.153.4/codex-package-x86_64-unknown-linux-musl.tar.gz",
+        "sha256": "a822187e1a2420c61c5926721bfbd878701ed95547c9bb0d4de4498a16ba1821",
+        "files": [
+          {
+            "file": "bin/codex",
+            "sha256": "56ef98ab4032d317ab26e9b5e5a175650717351edb16ed9cde0cb6d1734d62da",
+            "executable": true
+          },
+          {
+            "file": "bin/codex-code-mode-host",
+            "sha256": "3e85d67471825f73d02ff5f7e047ca1f6ca8caa3f59e4c6e8d9ca6ca7302cb45",
+            "executable": true
+          },
+          {
+            "file": "codex-package.json",
+            "sha256": "43f8735a93a7947c6dc082c550d2ff2d795fccfd1c7eb27c93aa91cbead1e3f4",
+            "executable": false
+          },
+          {
+            "file": "codex-path/rg",
+            "sha256": "e62198eb19b136b88c330af83647b5a962cb99b6b1f066758568f12de1974849",
+            "executable": true
+          },
+          {
+            "file": "codex-resources/bwrap",
+            "sha256": "77360cb751ccedc5971391444ac86a8a33c15b04d6b4a6fe45f5d25496e62c4c",
+            "executable": true
+          },
+          {
+            "file": "codex-resources/zsh/bin/zsh",
+            "sha256": "67faaaa89242c4a332e16e508a1977cffc24bf7fca31d4411cdfd101f3831ef3",
+            "executable": true
+          }
+        ]
+      }
+    }
+  },
+  "notices": [
+    {
+      "file": "LICENSE",
+      "sha256": "d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc",
+      "platforms": [
+        "darwin-arm64",
+        "darwin-x64",
+        "linux-x64"
+      ]
+    },
+    {
+      "file": "NOTICE",
+      "sha256": "9d71575ecfd9a843fc1677b0efb08053c6ba9fd686a0de1a6f5382fd3c220915",
+      "platforms": [
+        "darwin-arm64",
+        "darwin-x64",
+        "linux-x64"
+      ]
+    },
+    {
+      "file": "RIPGREP-COPYING",
+      "sha256": "dfe7d0a6134a17d3de7409762e08dc02133303912875cab40a74ba07a390f85a",
+      "platforms": [
+        "darwin-arm64",
+        "darwin-x64",
+        "linux-x64"
+      ]
+    },
+    {
+      "file": "RIPGREP-LICENSE-MIT",
+      "sha256": "970813655a1bf777d2ead189cef71ab73ab92ce04dc864027d61a45de03e6728",
+      "platforms": [
+        "darwin-arm64",
+        "darwin-x64",
+        "linux-x64"
+      ]
+    },
+    {
+      "file": "RIPGREP-UNLICENSE",
+      "sha256": "640514163b17f977adc997cb16f51871122cfb0555ebad1a3f01e167b7ba8857",
+      "platforms": [
+        "darwin-arm64",
+        "darwin-x64",
+        "linux-x64"
+      ]
+    },
+    {
+      "file": "ZSH-LICENCE",
+      "sha256": "d06fdf3ef9b1ec69d6b9e170b0a9516fbad3523261ff1668bde3bfea6e0ef5f5",
+      "platforms": [
+        "darwin-arm64",
+        "darwin-x64",
+        "linux-x64"
+      ]
+    },
+    {
+      "file": "BUBBLEWRAP-COPYING",
+      "sha256": "b7993225104d90ddd8024fd838faf300bea5e83d91203eab98e29512acebd69c",
+      "platforms": [
+        "linux-x64"
+      ]
+    },
+    {
+      "file": "UNIX-SOURCES.md",
+      "sha256": "d1e06668f7056e5362182fa871219a6400d1ee94a1ac2a33d0e049f4814209c5",
+      "platforms": [
+        "darwin-arm64",
+        "darwin-x64",
+        "linux-x64"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+[Unit]
+Description=Crew private personal workspace
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h
+Environment=NODE_ENV=production
+EnvironmentFile="%h/.config/crew/crew.env"
+ExecStart=/bin/sh "%h/.local/lib/crew/start-host.sh"
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=40
+KillMode=control-group
+UMask=0077
+
+[Install]
+WantedBy=default.target

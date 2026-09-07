@@ -1,0 +1,21 @@
+{
+  "name": "crew-local",
+  "version": "0.6.1",
+  "private": true,
+  "description": "Personal Codex teammates with browsers, routines, memory and task handoffs",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test *.test.mjs electron/*.test.cjs"
+  },
+  "dependencies": {
+    "playwright": "1.62.1"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "devDependencies": {
+    "yauzl": "3.4.0",
+    "yazl": "3.3.1"
+  }
+}

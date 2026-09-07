@@ -1,0 +1,22 @@
+{
+  "version": "44.2.0",
+  "releaseUrl": "https://github.com/electron/electron/releases/tag/v44.2.0",
+  "checksumSource": "https://github.com/electron/electron/releases/download/v44.2.0/SHASUMS256.txt",
+  "platforms": {
+    "darwin-arm64": {
+      "url": "https://github.com/electron/electron/releases/download/v44.2.0/electron-v44.2.0-darwin-arm64.zip",
+      "sha256": "f906dff5d054b1b92e5711781b13cc206fd7139ce66467503b9d0a3e6fbc9b02",
+      "output": "Crew-Mac-AppleSilicon.zip"
+    },
+    "darwin-x64": {
+      "url": "https://github.com/electron/electron/releases/download/v44.2.0/electron-v44.2.0-darwin-x64.zip",
+      "sha256": "0c58057eebd23859389e2eba1555975bcbc8adebcc5aa97ff36c036125e2b21a",
+      "output": "Crew-Mac-Intel.zip"
+    },
+    "linux-x64": {
+      "url": "https://github.com/electron/electron/releases/download/v44.2.0/electron-v44.2.0-linux-x64.zip",
+      "sha256": "574f7d8cd2a82d77812849729a282b86639b050de120d58b138a126d16b48692",
+      "output": "Crew-Linux-x64.zip"
+    }
+  }
+}

@@ -1,0 +1,147 @@
+{
+  "name": "OpenAI Codex",
+  "version": "0.153.4",
+  "tag": "rust-v0.153.4",
+  "commit": "3d2ee51ca2d5db578f328aa75e20aa22c0197c9a",
+  "platform": "x86_64-pc-windows-msvc",
+  "releaseUrl": "https://github.com/openai/codex/releases/tag/rust-v0.153.4",
+  "releasePublishedAt": "2026-09-04T23:25:48Z",
+  "license": "Apache-2.0",
+  "packagingNote": "Unmodified official release executables; architecture suffix removed from local filenames. No account credentials included. Executables were not run during packaging.",
+  "files": [
+    {
+      "file": "codex.exe",
+      "bytes": 295408944,
+      "sha256": "444a3f0008050605cae73cd9b7a2dcac61294062dfaab56dd20430fd6498518b",
+      "verifiedAgainstGitHubAsset": true,
+      "sourceArchive": "codex-x86_64-pc-windows-msvc.exe.zip",
+      "sourceAssetUrl": "https://github.com/openai/codex/releases/download/rust-v0.153.4/codex-x86_64-pc-windows-msvc.exe",
+      "signatureStatus": "Valid",
+      "signer": "CN=\"OpenAI OpCo, LLC\", O=\"OpenAI OpCo, LLC\", L=San Francisco, S=California, C=US",
+      "fileVersion": null,
+      "productVersion": null
+    },
+    {
+      "file": "codex-code-mode-host.exe",
+      "bytes": 72475952,
+      "sha256": "deaebc21f354f151fcebeac46e12c6e8c4ef75ee448e25e3577502074e04b8d9",
+      "verifiedAgainstGitHubAsset": true,
+      "sourceArchive": "codex-code-mode-host-x86_64-pc-windows-msvc.exe.zip",
+      "sourceAssetUrl": "https://github.com/openai/codex/releases/download/rust-v0.153.4/codex-code-mode-host-x86_64-pc-windows-msvc.exe",
+      "signatureStatus": "Valid",
+      "signer": "CN=\"OpenAI OpCo, LLC\", O=\"OpenAI OpCo, LLC\", L=San Francisco, S=California, C=US",
+      "fileVersion": null,
+      "productVersion": null
+    },
+    {
+      "file": "codex-command-runner.exe",
+      "bytes": 8204592,
+      "sha256": "3eb267dc1f0d1d80efeacc26a211f26ed0f414466d32a2aa7304a8a0beec170c",
+      "verifiedAgainstGitHubAsset": true,
+      "sourceArchive": "codex-x86_64-pc-windows-msvc.exe.zip",
+      "sourceAssetUrl": "https://github.com/openai/codex/releases/download/rust-v0.153.4/codex-command-runner-x86_64-pc-windows-msvc.exe",
+      "signatureStatus": "Valid",
+      "signer": "CN=\"OpenAI OpCo, LLC\", O=\"OpenAI OpCo, LLC\", L=San Francisco, S=California, C=US",
+      "fileVersion": null,
+      "productVersion": null
+    },
+    {
+      "file": "codex-windows-sandbox-setup.exe",
+      "bytes": 15413040,
+      "sha256": "0c3eeb7cee8d2bc4c8644def3c818e8b06760979572dcedc919c38d0f38f64c4",
+      "verifiedAgainstGitHubAsset": true,
+      "sourceArchive": "codex-x86_64-pc-windows-msvc.exe.zip",
+      "sourceAssetUrl": "https://github.com/openai/codex/releases/download/rust-v0.153.4/codex-windows-sandbox-setup-x86_64-pc-windows-msvc.exe",
+      "signatureStatus": "Valid",
+      "signer": "CN=\"OpenAI OpCo, LLC\", O=\"OpenAI OpCo, LLC\", L=San Francisco, S=California, C=US",
+      "fileVersion": null,
+      "productVersion": null
+    },
+    {
+      "file": "rg.exe",
+      "component": "ripgrep",
+      "version": "15.2.0",
+      "bytes": 4218880,
+      "sha256": "14231169855ec5205cf5a1b6f1db358ff4aed4247c86b69ce8aae647c77f6680",
+      "verifiedAgainstPinnedUpstreamExecutable": true,
+      "sourceArchive": "codex-package-x86_64-pc-windows-msvc.tar.gz",
+      "sourceAssetUrl": "https://github.com/openai/codex/releases/download/rust-v0.153.4/codex-package-x86_64-pc-windows-msvc.tar.gz",
+      "sourceArchiveSha256": "sha256:a6ef3442cb12766a88b39311d79244289e4f9763e2c53ff4fbebc2cb653cc5f3",
+      "upstreamArchiveUrl": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-x86_64-pc-windows-msvc.zip",
+      "upstreamArchiveSha256": "71b2fef860abe467217a538ff31de02f5258807c0129f771846f87bd029aafc5",
+      "signatureStatus": "NotSigned",
+      "license": "Unlicense OR MIT"
+    }
+  ],
+  "licenseFiles": [
+    {
+      "file": "LICENSE",
+      "sourceUrl": "https://raw.githubusercontent.com/openai/codex/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/LICENSE",
+      "gitBlobSha1": "4606e72e042564097e8780d66c1d4dcb611869bd",
+      "sha256": "d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc"
+    },
+    {
+      "file": "NOTICE",
+      "sourceUrl": "https://raw.githubusercontent.com/openai/codex/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/NOTICE",
+      "gitBlobSha1": "2805899d56d0332d175cfc613c67d45d6f006db7",
+      "sha256": "9d71575ecfd9a843fc1677b0efb08053c6ba9fd686a0de1a6f5382fd3c220915"
+    },
+    {
+      "file": "RIPGREP-COPYING",
+      "sourceArchive": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-x86_64-pc-windows-msvc.zip",
+      "sha256": "dfe7d0a6134a17d3de7409762e08dc02133303912875cab40a74ba07a390f85a"
+    },
+    {
+      "file": "RIPGREP-LICENSE-MIT",
+      "sourceArchive": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-x86_64-pc-windows-msvc.zip",
+      "sha256": "970813655a1bf777d2ead189cef71ab73ab92ce04dc864027d61a45de03e6728"
+    },
+    {
+      "file": "RIPGREP-UNLICENSE",
+      "sourceArchive": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-x86_64-pc-windows-msvc.zip",
+      "sha256": "640514163b17f977adc997cb16f51871122cfb0555ebad1a3f01e167b7ba8857"
+    }
+  ],
+  "upstreamPackageLayout": {
+    "layoutVersion": 1,
+    "version": "0.153.4",
+    "target": "x86_64-pc-windows-msvc",
+    "variant": "codex",
+    "entrypoint": "bin/codex.exe",
+    "resourcesDir": "codex-resources",
+    "pathDir": "codex-path"
+  },
+  "integrationNote": "The runtime is intentionally flat rather than the upstream bin/resources layout. Prepend this folder to the spawned Codex process PATH so rg.exe resolves. Keep the three Codex helper executables adjacent to codex.exe.",
+  "releaseArchives": [
+    {
+      "name": "codex-code-mode-host-x86_64-pc-windows-msvc.exe.zip",
+      "url": "https://github.com/openai/codex/releases/download/rust-v0.153.4/codex-code-mode-host-x86_64-pc-windows-msvc.exe.zip",
+      "sha256": "79f56e79f57ae6e023ca0d0f6ec9eb3968ea58a2477463510b773e8a7e0421c3",
+      "bytes": 27121945
+    },
+    {
+      "name": "codex-command-runner-x86_64-pc-windows-msvc.exe.zip",
+      "url": "https://github.com/openai/codex/releases/download/rust-v0.153.4/codex-command-runner-x86_64-pc-windows-msvc.exe.zip",
+      "sha256": "77220772ad9f8bc8315fed50686a3f84156ed6d760048816ba3297f7117ff588",
+      "bytes": 2861081
+    },
+    {
+      "name": "codex-package-x86_64-pc-windows-msvc.tar.gz",
+      "url": "https://github.com/openai/codex/releases/download/rust-v0.153.4/codex-package-x86_64-pc-windows-msvc.tar.gz",
+      "sha256": "a6ef3442cb12766a88b39311d79244289e4f9763e2c53ff4fbebc2cb653cc5f3",
+      "bytes": 136067504
+    },
+    {
+      "name": "codex-windows-sandbox-setup-x86_64-pc-windows-msvc.exe.zip",
+      "url": "https://github.com/openai/codex/releases/download/rust-v0.153.4/codex-windows-sandbox-setup-x86_64-pc-windows-msvc.exe.zip",
+      "sha256": "256c4deb16946a01a52156e8fd619baec38743ff482741767ab5fdb4079e97cb",
+      "bytes": 5562782
+    },
+    {
+      "name": "codex-x86_64-pc-windows-msvc.exe.zip",
+      "url": "https://github.com/openai/codex/releases/download/rust-v0.153.4/codex-x86_64-pc-windows-msvc.exe.zip",
+      "sha256": "c016b0e6968b78586919c720d2685a03712f6d5f11bcd9d6f92c91eb8c41ba16",
+      "bytes": 104174469
+    }
+  ]
+}

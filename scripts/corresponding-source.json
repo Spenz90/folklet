@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "component": "Codex Linux bubblewrap helper and its Rust wrapper",
+  "codexVersion": "0.153.4",
+  "commit": "3d2ee51ca2d5db578f328aa75e20aa22c0197c9a",
+  "url": "https://codeload.github.com/openai/codex/tar.gz/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a",
+  "sha256": "bbbf66ffa30846f1e9bc3ae8a87a5aa0bb768efee8dbb94759dc9eb64bb4aa3a",
+  "bytes": 13330433,
+  "output": "Crew-Linux-Corresponding-Source.tar.gz",
+  "requiredFiles": [
+    "codex-rs/Cargo.lock",
+    "codex-rs/bwrap/Cargo.toml",
+    "codex-rs/bwrap/build.rs",
+    "codex-rs/bwrap/src/main.rs",
+    "codex-rs/vendor/bubblewrap/COPYING",
+    "codex-rs/vendor/bubblewrap/bubblewrap.c"
+  ]
+}

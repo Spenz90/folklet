@@ -20,3 +20,9 @@ test('desktop smoke reports booleans only, saves an isolated screenshot and exit
  await captureSmoke({executeJavaScript:async()=>page,capturePage:async()=>({toPNG:()=>Buffer.from('fixture')}),getLastWebPreferences:()=>({sandbox:true,contextIsolation:true,nodeIntegration:false})},{root,report},{exit:value=>{code=value;},timeout:100});
  assert.equal(code,0);assert.equal(JSON.parse(fs.readFileSync(report)).passed,true);assert.equal(fs.existsSync(path.join(root,'result.png')),true);assert.equal(fs.readFileSync(report,'utf8').includes('CREW_TOKEN'),false);
 });
+test('desktop smoke retains the exact failed rendering phase without page content or tokens',async t=>{
+ const root=fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()),'crew-smoke-failure-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const page={title:'FOLKLET',app:true,main:true,rendered:true,tokenPresent:true,nodeAbsent:true,privateText:'must not persist'},secret='f'.repeat(64);let code;
+ const report=path.join(root,'result.json');await captureSmoke({executeJavaScript:async()=>page,capturePage:async()=>{throw Error('Capture failed '+root+' '+secret);}}, {root,report},{exit:value=>{code=value;},timeout:100});
+ const raw=fs.readFileSync(report,'utf8'),result=JSON.parse(raw);assert.equal(code,1);assert.equal(result.phase,'capture-page');assert.match(result.error,/Capture failed/);assert.equal(result.page.rendered,true);assert.equal(result.page.titleExpected,true);for(const hidden of [root,secret,'must not persist'])assert.equal(raw.includes(hidden),false);
+});

@@ -18,6 +18,13 @@ export function safeSmokeDiagnostic(value,root=''){
  if(root)text=text.replaceAll(root,'<isolated>').replaceAll(root.replaceAll('\\','/'),'<isolated>');
  return text.replace(/\b(?:sk-|ghp_|github_pat_)[A-Za-z0-9_-]+/g,'<redacted>').replace(/\b[a-f\d]{64,}\b/gi,'<redacted>').slice(-4000);
 }
+export function readSmokeFailure(report,root){
+ try{
+  const stat=fs.lstatSync(report);if(!stat.isFile()||stat.isSymbolicLink()||stat.size>65536)return null;
+  const value=JSON.parse(fs.readFileSync(report,'utf8'));if(value.passed!==false)return null;
+  return {phase:safeSmokeDiagnostic(value.phase,root).slice(0,80),error:safeSmokeDiagnostic(value.error,root).slice(0,1000),page:value.page?Object.fromEntries(['titleExpected','app','main','rendered','tokenPresent','nodeAbsent'].map(key=>[key,value.page[key]===true])):null};
+ }catch{return null;}
+}
 export function isolatedEnvironment(root,source=process.env){
  const env={};for(const key of ['PATH','Path','SystemRoot','WINDIR','COMSPEC','PATHEXT','DISPLAY','XAUTHORITY','DBUS_SESSION_BUS_ADDRESS','LANG','LC_ALL'])if(source[key])env[key]=source[key];
  return {...env,HOME:root,USERPROFILE:root,APPDATA:path.join(root,'appdata'),LOCALAPPDATA:path.join(root,'localappdata'),XDG_CONFIG_HOME:path.join(root,'config'),XDG_CACHE_HOME:path.join(root,'cache'),CODEX_HOME:path.join(root,'codex'),CREW_DATA:path.join(root,'data'),CREW_PORT:'4318',CREW_MOBILE_PORT:'4320',TMPDIR:path.join(root,'tmp'),TEMP:path.join(root,'tmp'),TMP:path.join(root,'tmp')};
@@ -103,7 +110,7 @@ export async function smokeDesktop({platform,archive,output,installLinuxProfile=
   await stopOwned(desktop);if(identity&&host?.exitCode===null)await shutdownHost(identity).catch(()=>{});await stopOwned(host);
   if(removeLinuxProfile)try{removeLinuxProfile();}catch(error){passed=false;profileCleanupError=error;phase='sandbox-profile-cleanup';}
   if(!passed){
-   const failure={schemaVersion:1,passed:false,platform,archive:path.basename(archive),archiveSha256:digest,error:'Isolated packaged desktop smoke failed.',phase,desktopExitCode:desktop?.exitCode??null,desktopSignal:desktop?.signalCode??null,hostExitCode:host?.exitCode??null,desktopStderr:safeSmokeDiagnostic(desktop?.stderrText,root),hostStderr:safeSmokeDiagnostic(host?.stderrText,root)};
+   const failure={schemaVersion:1,passed:false,platform,archive:path.basename(archive),archiveSha256:digest,error:'Isolated packaged desktop smoke failed.',phase,desktopExitCode:desktop?.exitCode??null,desktopSignal:desktop?.signalCode??null,hostExitCode:host?.exitCode??null,desktopReport:readSmokeFailure(report,root),desktopStderr:safeSmokeDiagnostic(desktop?.stderrText,root),hostStderr:safeSmokeDiagnostic(host?.stderrText,root)};
    fs.writeFileSync(resultPath,JSON.stringify(failure,null,2)+'\n');console.error(JSON.stringify(failure));
   }
   if(path.dirname(root)===tempRoot&&path.basename(root).startsWith('crew-desktop-smoke-'))fs.rmSync(root,{recursive:true,force:true,maxRetries:3,retryDelay:300});

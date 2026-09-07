@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {spawnSync} from 'node:child_process';
 import {linuxProfile,activateTemporaryLinuxProfile,writeLinuxProfile,validateExistingLinuxProfile} from './scripts/Linux-Sandbox.mjs';
 
 test('Linux profile grants only user namespaces to one exact ordinary executable path',()=>{
@@ -9,9 +11,18 @@ test('Linux profile grants only user namespaces to one exact ordinary executable
 });
 test('temporary CI profiles refuse existing policies and remove only their own named policy',()=>{
  const profile=linuxProfile('/tmp/isolated-folklet/crew'),calls=[],runProcess=(file,args,options)=>{calls.push({file,args,options});return {status:0,stdout:''};};
- const remove=activateTemporaryLinuxProfile(profile,{runProcess});remove();remove();assert.equal(calls.length,3);assert.deepEqual(calls[1].args,['-n','/usr/sbin/apparmor_parser','--replace','-']);assert.deepEqual(calls[2].args,['-n','/usr/sbin/apparmor_parser','--remove','-']);assert.equal(calls[1].options.input,profile.content);assert.equal(calls[2].options.input,profile.content);
+ const remove=activateTemporaryLinuxProfile(profile,{runProcess});remove();remove();assert.equal(calls.length,3);assert.deepEqual(calls[1].args,['-n','/usr/sbin/apparmor_parser','--replace']);assert.deepEqual(calls[2].args,['-n','/usr/sbin/apparmor_parser','--remove']);assert.equal(calls[1].options.input,profile.content);assert.equal(calls[2].options.input,profile.content);
  assert.throws(()=>activateTemporaryLinuxProfile(profile,{runProcess:()=>({status:0,stdout:profile.name+' (unconfined)\n'})}),/existing AppArmor profile/);
  assert.throws(()=>activateTemporaryLinuxProfile(profile,{runProcess:()=>({status:1})}),/administrator access/);
+});
+test('installed Linux parser accepts the temporary profile via stdin without loading kernel policy',{skip:process.platform!=='linux'||!fs.existsSync('/usr/sbin/apparmor_parser')},()=>{
+ const profile=linuxProfile('/tmp/isolated-folklet/crew'),calls=[];
+ const remove=activateTemporaryLinuxProfile(profile,{runProcess:(file,args,options)=>{
+  if(args[1]==='/bin/cat')return {status:0,stdout:''};
+  // Exercise the generated parser invocation without sudo or changing policy.
+  const result=spawnSync(args[1],['--skip-kernel-load','--skip-cache',...args.slice(2)],options);calls.push(result);return result;
+ }});
+ remove();assert.equal(calls.length,2);for(const result of calls)assert.equal(result.status,0,String(result.stderr||result.error||''));
 });
 test('persistent sandbox setup requires explicit root authorization and preserves edited or linked profiles',()=>{
  const profile=linuxProfile('/opt/Folklet/crew');assert.throws(()=>writeLinuxProfile(profile,{uid:1000}),/explicit administrator/);

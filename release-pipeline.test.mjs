@@ -4,7 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
 import {fileURLToPath} from 'node:url';
-import {isolatedEnvironment,validateSmokeTarget,signatureEvidence,safeSmokeDiagnostic} from './scripts/Smoke-Desktop.mjs';
+import {isolatedEnvironment,validateSmokeTarget,signatureEvidence,safeSmokeDiagnostic,readSmokeFailure} from './scripts/Smoke-Desktop.mjs';
 import {validateSmokeEvidence,checkPinnedRuntimeNotices} from './scripts/Check-Release.mjs';
 import {correspondingSource,validateSourcePin} from './scripts/Prepare-Corresponding-Source.mjs';
 
@@ -17,6 +17,12 @@ test('packaged smoke rejects foreign targets and strips inherited credentials/co
 test('failed desktop diagnostics retain bounded startup errors without tokens or the private root',()=>{
  const root=path.resolve('isolated-smoke'),secret='sk-'+'a'.repeat(48),token='f'.repeat(64),message='Sandbox helper failed: '+root+' '+secret+' '+token;
  const result=safeSmokeDiagnostic(message,root);assert.match(result,/Sandbox helper failed/);assert.equal(result.includes(root),false);assert.equal(result.includes(secret),false);assert.equal(result.includes(token),false);assert.ok(safeSmokeDiagnostic('x'.repeat(20000)).length<=4000);
+});
+test('failed child smoke reports survive a nonzero exit with only bounded approved diagnostic fields',t=>{
+ const root=fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()),'crew-child-report-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));const report=path.join(root,'desktop.json'),secret='a'.repeat(64);
+ fs.writeFileSync(report,JSON.stringify({passed:false,phase:'capture-page',error:'Capture failure '+root+' '+secret,page:{titleExpected:true,rendered:true,tokenPresent:true,privateText:'private'},extra:'private'}));
+ const value=readSmokeFailure(report,root);assert.equal(value.phase,'capture-page');assert.equal(value.page.rendered,true);for(const hidden of [root,secret,'private'])assert.equal(JSON.stringify(value).includes(hidden),false);
+ fs.writeFileSync(report,'x'.repeat(65537));assert.equal(readSmokeFailure(report,root),null);assert.equal(readSmokeFailure(path.join(root,'missing.json'),root),null);
 });
 test('release readiness binds native startup evidence to the exact archive/platform/version',()=>{
  const expected={platform:'linux-x64',version:'0.6.1',sha256:'a'.repeat(64)},report={schemaVersion:1,passed:true,...expected,archive:'Folklet-Linux-x64.zip',archiveSha256:expected.sha256,hostStarted:true,workspaceRendered:true,isolatedData:true,ownedProcessesClosed:true};

@@ -24,7 +24,9 @@ export async function verifiedLinuxProfile(executable){
  return profile;
 }
 function runParser(profile,action,{sudo=false,runProcess=spawnSync,file}={}){
- const args=[action,...file?[file]:['-']],command=sudo?'sudo':parser;
+ // AppArmor reads stdin only when no profile filename is supplied. Unlike
+ // many Unix tools, a literal "-" is interpreted as a filename here.
+ const args=[action,...file?[file]:[]],command=sudo?'sudo':parser;
  const result=runProcess(command,sudo?['-n',parser,...args]:args,{input:file?undefined:profile.content,encoding:'utf8',timeout:30000,windowsHide:true,maxBuffer:2000000});
  if(result.error||result.status!==0)throw Error('AppArmor profile '+action+' failed. Install AppArmor with ABI 4 support and use administrator setup. '+String(result.stderr||'').slice(0,1200));
 }

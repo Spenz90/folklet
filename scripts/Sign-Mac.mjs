@@ -3,7 +3,61 @@ import path from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {assertNoLinks,verifyUnixArchive} from './Build-Unix.mjs';
+import {assertNoLinks,safeLink,verifyUnixArchive} from './Build-Unix.mjs';
+
+const machOMagic=new Set(['feedface','cefaedfe','feedfacf','cffaedfe','cafebabe','bebafeca','cafebabf','bfbafeca']);
+export function macSigningPlan(app){
+ app=path.resolve(app);assertNoLinks(app);if(!fs.statSync(app).isDirectory())throw Error('Choose an extracted Mac application.');
+ const frameworkRoot=path.join(app,'Contents','Frameworks'),targets=[];
+ const visit=file=>{
+  const stat=fs.lstatSync(file),relative=path.relative(app,file).replaceAll('\\','/');
+  if(stat.isSymbolicLink()){
+   safeLink('Folklet.app/'+relative,fs.readlinkSync(file));
+   const real=fs.realpathSync(file);if(!real.startsWith(fs.realpathSync(app)+path.sep))throw Error('Framework link escapes the app');
+   return; // Framework aliases are retained, but never traversed or signed.
+  }
+  if(stat.isDirectory()){
+   for(const name of fs.readdirSync(file).sort())visit(path.join(file,name));
+   if(/\.(app|framework|xpc|bundle)$/.test(file))targets.push(file);
+  }else if(stat.isFile()){
+   if(stat.nlink>1)throw Error('Mac signing cannot modify linked executable files');
+   const header=Buffer.alloc(4),fd=fs.openSync(file,'r');let count;try{count=fs.readSync(fd,header,0,4,0);}finally{fs.closeSync(fd);}
+   if(count===4&&machOMagic.has(header.toString('hex')))targets.push(file);
+  }else throw Error('Unexpected framework entry');
+ };
+ visit(frameworkRoot);
+ // Post-order traversal signs nested code before its containing bundle. Only
+ // Electron's Frameworks tree is considered: Resources/app/crew/runtime is
+ // intentionally excluded so pinned Node/Codex executables are never changed.
+ return [...targets,app];
+}
+
+export function signMacBundle(app,{runProcess=spawnSync}={}){
+ const plan=macSigningPlan(app),modified=[];
+ const invoke=(args,quiet=false)=>{
+  const result=runProcess('/usr/bin/codesign',args,{stdio:quiet?'pipe':'inherit',encoding:'utf8',timeout:120000,maxBuffer:2000000});
+  if(result.error)throw Error('Mac signing step could not run: codesign');return result;
+ };
+ const requireSuccess=args=>{if(invoke(args).status!==0)throw Error('Mac signing step failed: codesign');};
+ for(const target of plan){
+  const outer=target===plan.at(-1),containsRepair=modified.some(file=>file.startsWith(target+path.sep));
+  // A newly signed main executable can make a bundle verify successfully before
+  // its resource envelope is sealed. Always reseal a repaired code container.
+  if(!outer&&!containsRepair&&invoke(['--verify','--strict',target],true).status===0)continue;
+  const signature=invoke(['--display',target],true),signed=signature.status===0;
+  if(!signed&&!/code object is not signed at all/.test(String(signature.stderr||'')))throw Error('Mac component signature could not be inspected: '+path.basename(target));
+  // Valid upstream signatures remain intact. A signed container is resealed
+  // only if this pass repaired one of its nested code objects (or it is the
+  // intentionally modified outer app); other invalid signatures fail closed.
+  if(signed&&!outer&&!containsRepair)throw Error('Unexpected invalid Mac component signature: '+path.basename(target));
+  requireSuccess(['--force','--sign','-',...(signed?['--preserve-metadata=entitlements,flags,runtime']:[]),target]);
+  requireSuccess(['--verify','--strict',target]);modified.push(target);
+ }
+ // --deep is for verification only, never recursive signing of pinned tools.
+ // Apple TN2206 requires inside-out signing of each nested code object.
+ requireSuccess(['--verify','--deep','--strict','--verbose=2',plan.at(-1)]);
+ return {signed:modified.length};
+}
 
 // This creates a local ad-hoc signature, not a Developer ID identity or notarization.
 export async function signMacArchive({archive,platform}={}){
@@ -19,10 +73,9 @@ export async function signMacArchive({archive,platform}={}){
  try{
   run('/usr/bin/ditto',['-x','-k',archive,stage]);
   const app=path.join(stage,'Folklet.app');
-  // Only the outer application changed. Preserve its JIT entitlements and leave
-  // upstream framework/runtime signatures and pinned runtime bytes untouched.
-  run('/usr/bin/codesign',['--force','--sign','-','--preserve-metadata=entitlements,flags,runtime',app]);
-  run('/usr/bin/codesign',['--verify','--strict','--verbose=2',app]);
+  // Intel Electron distributions can contain unsigned nested helpers. Repair
+  // those first; preserve valid signatures/entitlements and sign the app last.
+  signMacBundle(app);
   run('/usr/bin/zip',['-q','-r','-y',signed,'.'],{cwd:stage});
   await verifyUnixArchive(signed,platform);
   fs.renameSync(signed,archive);

@@ -12,6 +12,11 @@ import {probeHost,shutdownHost} from '../electron/host.cjs';
 
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function deadline(promise,ms,message){let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(message)),ms);})]);}finally{clearTimeout(timer);}}
+export function safeSmokeDiagnostic(value,root=''){
+ let text=String(value||'').slice(-8000).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g,'');
+ if(root)text=text.replaceAll(root,'<isolated>').replaceAll(root.replaceAll('\\','/'),'<isolated>');
+ return text.replace(/\b(?:sk-|ghp_|github_pat_)[A-Za-z0-9_-]+/g,'<redacted>').replace(/\b[a-f\d]{64,}\b/gi,'<redacted>').slice(-4000);
+}
 export function isolatedEnvironment(root,source=process.env){
  const env={};for(const key of ['PATH','Path','SystemRoot','WINDIR','COMSPEC','PATHEXT','DISPLAY','XAUTHORITY','DBUS_SESSION_BUS_ADDRESS','LANG','LC_ALL'])if(source[key])env[key]=source[key];
  return {...env,HOME:root,USERPROFILE:root,APPDATA:path.join(root,'appdata'),LOCALAPPDATA:path.join(root,'localappdata'),XDG_CONFIG_HOME:path.join(root,'config'),XDG_CACHE_HOME:path.join(root,'cache'),CODEX_HOME:path.join(root,'codex'),CREW_DATA:path.join(root,'data'),CREW_PORT:'4318',CREW_MOBILE_PORT:'4320',TMPDIR:path.join(root,'tmp'),TEMP:path.join(root,'tmp'),TMP:path.join(root,'tmp')};
@@ -54,7 +59,8 @@ async function extractArchive(file,destination){
  }finally{zip.close();}
 }
 function launch(file,args,options){
- const child=spawn(file,args,{windowsHide:true,stdio:'ignore',...options});
+ const child=spawn(file,args,{windowsHide:true,stdio:['ignore','ignore','pipe'],...options});
+ child.stderrText='';child.stderr?.on('data',chunk=>{child.stderrText=(child.stderrText+chunk.toString()).slice(-8000);});
  child.done=new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',(code,signal)=>resolve({code,signal}));});child.done.catch(()=>{});return child;
 }
 async function stopOwned(child){if(!child||child.exitCode!==null||child.signalCode)return;child.kill();await deadline(child.done,3000,'Shutdown timeout').catch(()=>{});if(child.exitCode===null&&!child.signalCode){child.kill('SIGKILL');await deadline(child.done,3000,'Shutdown timeout').catch(()=>{});}}
@@ -68,31 +74,34 @@ export async function smokeDesktop({platform,archive,output}={}){
  // Start from its canonical parent so the isolated root itself has no links.
  fs.mkdirSync(output,{recursive:true});const tempRoot=fs.realpathSync(os.tmpdir()),root=fs.mkdtempSync(path.join(tempRoot,'crew-desktop-smoke-')),extracted=path.join(root,'extracted'),isolated=path.join(root,'isolated');fs.mkdirSync(extracted);fs.mkdirSync(isolated);
  const report=path.join(isolated,'desktop.json'),resultPath=path.join(output,platform+'-smoke.json'),screenshot=path.join(output,platform+'-smoke.png');assertNoLinks(resultPath);assertNoLinks(screenshot);
- let host,desktop,identity,passed=false;
+ let host,desktop,identity,passed=false,phase='extract';
  try{
   await extractArchive(archive,extracted);
   const appRoot=path.join(extracted,...(platform==='win32-x64'?['Folklet']:platform.startsWith('darwin')?['Folklet.app','Contents','Resources','app','crew']:['Folklet','resources','app','crew']));
   const node=path.join(appRoot,'runtime',platform==='win32-x64'?'node.exe':'node'),env=isolatedEnvironment(isolated);for(const value of Object.values(env).filter(value=>typeof value==='string'&&value.startsWith(isolated)))fs.mkdirSync(value,{recursive:true});
   const version=JSON.parse(fs.readFileSync(path.join(appRoot,'package.json'),'utf8')).version;
-  host=launch(node,[path.join(appRoot,'server.mjs')],{cwd:appRoot,env});
+  phase='host-start';host=launch(node,[path.join(appRoot,'server.mjs')],{cwd:appRoot,env});
   const startupDeadline=Date.now()+30000;
   while(Date.now()<startupDeadline){const current=await probeHost();if(current.state==='ready'){if(current.pid!==host.pid)throw Error('Smoke host identity mismatch.');identity={...current,port:4318};break;}if(host.exitCode!==null||host.signalCode)throw Error('Packaged host stopped before startup.');await pause(200);}
   if(!identity)throw Error('Packaged host did not start.');
   const executable=path.join(extracted,...(platform==='win32-x64'?['Folklet','desktop','Crew.exe']:platform.startsWith('darwin')?['Folklet.app','Contents','MacOS','Electron']:['Folklet','crew']));
-  desktop=launch(executable,['--smoke-test',report],{cwd:path.dirname(executable),env:{...env,CREW_SMOKE_ROOT:isolated,CREW_SMOKE_HOST_PID:String(host.pid)}});
+  phase='desktop-start';desktop=launch(executable,['--smoke-test',report],{cwd:path.dirname(executable),env:{...env,CREW_SMOKE_ROOT:isolated,CREW_SMOKE_HOST_PID:String(host.pid)}});
   const ended=await deadline(desktop.done,45000,'Packaged desktop smoke timed out.');
   if(ended.code!==0||!fs.existsSync(report))throw Error('Packaged desktop did not complete smoke.');
   const result=JSON.parse(fs.readFileSync(report,'utf8'));
   if(result.passed!==true||result.page?.rendered!==true||result.page?.tokenPresent!==true)throw Error('Packaged workspace did not render.');
   if(platform!=='win32-x64'&&(result.rendererSandboxed!==true||result.contextIsolation!==true||result.nodeIntegration!==false))throw Error('Packaged Electron isolation check failed.');
   fs.copyFileSync(report.replace(/\.json$/,'.png'),screenshot);
-  await shutdownHost(identity);await deadline(host.done,5000,'Packaged host did not close.');
+  phase='host-stop';await shutdownHost(identity);await deadline(host.done,5000,'Packaged host did not close.');
   if(host.exitCode===null)throw Error('Packaged host remained running.');
   const signing=signatureEvidence(platform,executable,env);
   passed=true;const evidence={schemaVersion:1,passed:true,platform,version,archive:path.basename(archive),archiveSha256:digest,checkedAt:new Date().toISOString(),hostStarted:true,workspaceRendered:true,isolatedData:true,ownedProcessesClosed:true,modelAccountUsed:false,nativeInputUsed:false,signing};fs.writeFileSync(resultPath,JSON.stringify(evidence,null,2)+'\n');return evidence;
  }finally{
   await stopOwned(desktop);if(identity&&host?.exitCode===null)await shutdownHost(identity).catch(()=>{});await stopOwned(host);
-  if(!passed)fs.writeFileSync(resultPath,JSON.stringify({schemaVersion:1,passed:false,platform,archive:path.basename(archive),archiveSha256:digest,error:'Isolated packaged desktop smoke failed.'},null,2)+'\n');
+  if(!passed){
+   const failure={schemaVersion:1,passed:false,platform,archive:path.basename(archive),archiveSha256:digest,error:'Isolated packaged desktop smoke failed.',phase,desktopExitCode:desktop?.exitCode??null,desktopSignal:desktop?.signalCode??null,hostExitCode:host?.exitCode??null,desktopStderr:safeSmokeDiagnostic(desktop?.stderrText,root),hostStderr:safeSmokeDiagnostic(host?.stderrText,root)};
+   fs.writeFileSync(resultPath,JSON.stringify(failure,null,2)+'\n');console.error(JSON.stringify(failure));
+  }
   if(path.dirname(root)===tempRoot&&path.basename(root).startsWith('crew-desktop-smoke-'))fs.rmSync(root,{recursive:true,force:true,maxRetries:3,retryDelay:300});
  }
 }

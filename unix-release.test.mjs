@@ -3,6 +3,37 @@ import assert from 'node:assert/strict';
 import {archivePath,safeLink,brandPlist,expectedRuntimeFiles,validateRuntimeReceipt,validateMacHelperHeader,sourceWithoutRuntimeDuplicates,unixArchiveReadme} from './scripts/Build-Unix.mjs';
 import {platformManifest} from './scripts/Install-Platform.mjs';
 import {sourceFiles} from './scripts/release-files.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {macSigningPlan,signMacBundle} from './scripts/Sign-Mac.mjs';
+
+function signingFixture(t){
+ const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'crew-mac-sign-test-'))),app=path.join(root,'Folklet.app');
+ const files=['Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer)','Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libfixture.dylib','Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework','Contents/Resources/app/crew/runtime/node','Contents/Resources/app/crew/runtime/codex/bin/codex'];
+ for(const file of files){const target=path.join(app,file);fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,Buffer.from('cffaedfe01020304','hex'));}
+ t.after(()=>{assert.equal(path.dirname(root),fs.realpathSync(os.tmpdir()));assert.match(path.basename(root),/^crew-mac-sign-test-/);fs.rmSync(root,{recursive:true,force:true});});
+ return {root,app,files};
+}
+
+test('Mac ad-hoc signing repairs unsigned nested code inside out while retaining valid signatures and runtime bytes',t=>{
+ const {app}=signingFixture(t),plan=macSigningPlan(app),helper=path.join(app,'Contents/Frameworks/Electron Helper (Renderer).app'),helperBinary=path.join(helper,'Contents/MacOS/Electron Helper (Renderer)'),framework=path.join(app,'Contents/Frameworks/Electron Framework.framework');
+ assert.ok(plan.indexOf(helperBinary)<plan.indexOf(helper));assert.ok(plan.indexOf(path.join(framework,'Versions/A/Libraries/libfixture.dylib'))<plan.indexOf(framework));assert.equal(plan.at(-1),app);assert.ok(plan.every(file=>!file.includes(path.join('Contents','Resources'))));
+ const valid=new Set(plan.filter(file=>file.startsWith(framework))),calls=[],runtime=['runtime/node','runtime/codex/bin/codex'].map(file=>path.join(app,'Contents/Resources/app/crew',file)),before=runtime.map(file=>fs.readFileSync(file));
+ const result=signMacBundle(app,{runProcess(command,args){assert.equal(command,'/usr/bin/codesign');calls.push(args);const target=args.at(-1);if(args.includes('--sign')){assert.ok(!args.includes('--deep'));valid.add(target);return {status:0};}if(args.includes('--display'))return valid.has(target)||target===app||(target===helper&&valid.has(helperBinary))?{status:0}:{status:1,stderr:'code object is not signed at all'};return {status:valid.has(target)||(target===helper&&valid.has(helperBinary))?0:1};}});
+ const signed=calls.filter(args=>args.includes('--sign'));assert.deepEqual(signed.map(args=>args.at(-1)),[helperBinary,helper,app]);assert.ok(!signed[0].some(arg=>arg.startsWith('--preserve-metadata')));assert.ok(signed[1].includes('--preserve-metadata=entitlements,flags,runtime'));assert.ok(signed[2].includes('--preserve-metadata=entitlements,flags,runtime'));assert.equal(result.signed,3);assert.deepEqual(runtime.map(file=>fs.readFileSync(file)),before);assert.ok(calls.at(-1).includes('--deep'));
+});
+
+test('Mac signing refuses invalid existing signatures instead of treating every error as unsigned',t=>{
+ const {app}=signingFixture(t);let signs=0;
+ assert.throws(()=>signMacBundle(app,{runProcess(_command,args){if(args.includes('--sign'))signs++;return {status:args.includes('--display')?0:1};}}),/Unexpected invalid Mac component signature/);assert.equal(signs,0);
+});
+
+test('Mac signing validates framework links without following them into external files',t=>{
+ const {root,app}=signingFixture(t),framework=path.join(app,'Contents/Frameworks/Electron Framework.framework'),outside=path.join(root,'outside');fs.mkdirSync(outside);
+ if(process.platform!=='win32'){fs.symlinkSync('A',path.join(framework,'Versions/Current'));assert.doesNotThrow(()=>macSigningPlan(app));}
+ fs.symlinkSync(outside,path.join(framework,'unexpected-link'),'junction');assert.throws(()=>macSigningPlan(app),/Unsafe archive link|escapes the app/);
+});
 
 function receipt(platform){
  const target=platformManifest.platforms[platform];

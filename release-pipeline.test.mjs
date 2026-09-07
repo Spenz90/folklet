@@ -4,7 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
 import {fileURLToPath} from 'node:url';
-import {isolatedEnvironment,validateSmokeTarget,signatureEvidence} from './scripts/Smoke-Desktop.mjs';
+import {isolatedEnvironment,validateSmokeTarget,signatureEvidence,safeSmokeDiagnostic} from './scripts/Smoke-Desktop.mjs';
 import {validateSmokeEvidence,checkPinnedRuntimeNotices} from './scripts/Check-Release.mjs';
 import {correspondingSource,validateSourcePin} from './scripts/Prepare-Corresponding-Source.mjs';
 
@@ -13,6 +13,10 @@ test('packaged smoke rejects foreign targets and strips inherited credentials/co
  const root=path.resolve('temporary-smoke'),env=isolatedEnvironment(root,{PATH:'system-tools',SystemRoot:'system',OPENAI_API_KEY:'private',GITHUB_TOKEN:'private',NODE_OPTIONS:'--require injected',CREW_DATA:'used-data',CODEX_HOME:'used-account'});
  assert.equal(env.PATH,'system-tools');assert.equal(env.CODEX_HOME,path.join(root,'codex'));assert.equal(env.CREW_DATA,path.join(root,'data'));assert.equal(env.HOME,root);
  for(const key of ['OPENAI_API_KEY','GITHUB_TOKEN','NODE_OPTIONS'])assert.equal(env[key],undefined);
+});
+test('failed desktop diagnostics retain bounded startup errors without tokens or the private root',()=>{
+ const root=path.resolve('isolated-smoke'),secret='sk-'+'a'.repeat(48),token='f'.repeat(64),message='Sandbox helper failed: '+root+' '+secret+' '+token;
+ const result=safeSmokeDiagnostic(message,root);assert.match(result,/Sandbox helper failed/);assert.equal(result.includes(root),false);assert.equal(result.includes(secret),false);assert.equal(result.includes(token),false);assert.ok(safeSmokeDiagnostic('x'.repeat(20000)).length<=4000);
 });
 test('release readiness binds native startup evidence to the exact archive/platform/version',()=>{
  const expected={platform:'linux-x64',version:'0.6.1',sha256:'a'.repeat(64)},report={schemaVersion:1,passed:true,...expected,archive:'Folklet-Linux-x64.zip',archiveSha256:expected.sha256,hostStarted:true,workspaceRendered:true,isolatedData:true,ownedProcessesClosed:true};

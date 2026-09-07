@@ -5,7 +5,7 @@ const path=require('node:path');
 const fs=require('node:fs');
 const {HOME_URL,isCrewOrigin,isCrewResource,externalWebLink}=require('./policy.cjs');
 const {ensureHost,shutdownHost,installBrowser}=require('./host.cjs');
-const {smokeOptions,captureSmoke}=require('./smoke.cjs');
+const {smokeOptions,prepareSmokeWindow}=require('./smoke.cjs');
 
 app.setName('Folklet');
 const smoke=smokeOptions(process.argv,process.env);
@@ -52,7 +52,7 @@ function createWindow(){
   // Linux desktops can hide tray icons. Keep the window reachable in the taskbar.
   if(process.platform==='linux')mainWindow.minimize();else mainWindow.hide();
  });
- if(smoke)contents.once('did-finish-load',()=>void captureSmoke(contents,smoke,{exit:code=>{quitting=true;app.exit(code);}}));
+ if(smoke)prepareSmokeWindow(mainWindow,smoke,{show:showWindow,exit:code=>{quitting=true;app.exit(code);}});
  else mainWindow.once('ready-to-show',showWindow);
  mainWindow.loadURL(HOME_URL).catch(()=>dialog.showErrorBox('Folklet could not open','Use View → Reload to reconnect to the local app.'));
 }

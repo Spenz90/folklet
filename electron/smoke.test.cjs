@@ -1,6 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
-const {smokeOptions,validSmokePage,captureSmoke}=require('./smoke.cjs');
+const {EventEmitter}=require('node:events');
+const {smokeOptions,validSmokePage,captureSmoke,prepareSmokeWindow}=require('./smoke.cjs');
 test('desktop diagnostics are opt-in and require a report inside the isolated root plus owned host PID',t=>{
  const root=fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()),'crew-smoke-options-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
  assert.equal(smokeOptions([],{}),null);
@@ -13,6 +14,14 @@ test('desktop diagnostics are opt-in and require a report inside the isolated ro
 test('desktop smoke requires rendered application content and no renderer Node bridge',()=>{
  const page={title:'FOLKLET',app:true,main:true,rendered:true,tokenPresent:true,nodeAbsent:true};assert.equal(validSmokePage(page),true);
  for(const key of ['rendered','tokenPresent','nodeAbsent'])assert.equal(validSmokePage({...page,[key]:false}),false);
+});
+test('desktop smoke shows the window and waits for both document load and its first paint',()=>{
+ for(const order of [['load','paint'],['paint','load']]){
+  const window=new EventEmitter();window.webContents=new EventEmitter();const calls=[];
+  prepareSmokeWindow(window,{},{show:()=>calls.push('show'),capture:()=>calls.push('capture')});
+  const emit=name=>name==='paint'?window.emit('ready-to-show'):window.webContents.emit('did-finish-load');
+  emit(order[0]);assert.equal(calls.includes('capture'),false);emit(order[1]);assert.deepEqual(calls,['show','capture']);emit('load');emit('paint');assert.deepEqual(calls,['show','capture']);
+ }
 });
 test('desktop smoke reports booleans only, saves an isolated screenshot and exits',async t=>{
  const root=fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()),'crew-smoke-render-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));let code;

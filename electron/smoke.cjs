@@ -13,11 +13,20 @@ function smokeOptions(argv=[],env={}){
 }
 function validSmokePage(page){return page?.title==='FOLKLET'&&page.app===true&&page.main===true&&page.rendered===true&&page.tokenPresent===true&&page.nodeAbsent===true;}
 const pageExpression=`({title:document.title,app:!!document.getElementById('app'),main:!!document.querySelector('main'),rendered:!!document.querySelector('#page .team-home'),tokenPresent:typeof window.CREW_TOKEN==='string'&&window.CREW_TOKEN.length===64,nodeAbsent:typeof require==='undefined'&&typeof process==='undefined'})`;
+function prepareSmokeWindow(window,options,{show,exit,capture=captureSmoke}={}){
+ let loaded=false,painted=false,started=false;
+ const begin=()=>{if(loaded&&painted&&!started){started=true;void capture(window.webContents,options,{exit});}};
+ // Exercise the normal visible-window path. did-finish-load alone establishes
+ // DOM readiness, not the first compositor surface needed by capturePage.
+ window.once('ready-to-show',()=>{painted=true;show();begin();});
+ window.webContents.once('did-finish-load',()=>{loaded=true;begin();});
+}
 async function captureSmoke(contents,options,{exit,timeout=20000}={}){
  const deadline=Date.now()+timeout;let page,phase='read-page';
  try{
   while(Date.now()<deadline){page=await contents.executeJavaScript(pageExpression);if(validSmokePage(page))break;await new Promise(resolve=>setTimeout(resolve,200));}
   if(!validSmokePage(page))throw Error('Workspace did not render.');
+  phase='paint-page';await contents.executeJavaScript('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))');
   phase='capture-page';const image=await contents.capturePage();
   phase='write-screenshot';fs.writeFileSync(options.report.replace(/\.json$/,'.png'),image.toPNG());
   phase='write-report';
@@ -28,4 +37,4 @@ async function captureSmoke(contents,options,{exit,timeout=20000}={}){
   fs.writeFileSync(options.report,JSON.stringify({passed:false,phase,error:detail,page:checkedPage})+'\n');exit(1);
  }
 }
-module.exports={smokeOptions,validSmokePage,captureSmoke};
+module.exports={smokeOptions,validSmokePage,captureSmoke,prepareSmokeWindow};

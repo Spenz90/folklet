@@ -34,10 +34,10 @@ export function checkDependencyNotices(sourceRoot=root){
   if(!name)continue;
   if(!item.resolved?.startsWith('https://registry.npmjs.org/')||!/^sha512-[A-Za-z\d+/]+=*$/.test(item.integrity||''))throw Error('Dependency lacks a pinned official registry archive.');
  }
- for(const library of ['playwright','playwright-core']){
+ for(const [library,version] of Object.entries({'playwright':'1.62.1','playwright-core':'1.62.1','yauzl':'3.4.0','pend':'1.2.0'})){
   const dir=path.join(sourceRoot,'node_modules',library),actual=JSON.parse(fs.readFileSync(path.join(dir,'package.json')));
-  if(actual.version!=='1.62.1')throw Error('Unexpected browser dependency version.');
-  for(const name of ['LICENSE','NOTICE'])if(fs.statSync(path.join(dir,name)).size<20)throw Error('Browser dependency notice is missing.');
+  if(actual.version!==version||lock.packages['node_modules/'+library]?.version!==version)throw Error('Unexpected runtime dependency version.');
+  for(const name of library.startsWith('playwright')?['LICENSE','NOTICE']:['LICENSE'])if(fs.statSync(path.join(dir,name)).size<20)throw Error('Runtime dependency notice is missing.');
  }
  for(const relative of ['LICENSE','THIRD-PARTY-NOTICES.md','desktop/WebView2-LICENSE.txt','runtime/LICENSE.txt','runtime/codex/LICENSE','runtime/codex/NOTICE','runtime/codex/BUBBLEWRAP-COPYING','runtime/codex/ZSH-LICENCE','runtime/codex/UNIX-SOURCES.md'])if(fs.statSync(path.join(sourceRoot,relative)).size<20)throw Error('Runtime license or source notice is missing.');
  return {passed:true,version:pkg.version,lockedPackages:Object.keys(lock.packages).length-1,dependencyNotices:true};

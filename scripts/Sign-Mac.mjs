@@ -9,7 +9,7 @@ const machOMagic=new Set(['feedface','cefaedfe','feedfacf','cffaedfe','cafebabe'
 export function macSigningPlan(app){
  app=path.resolve(app);assertNoLinks(app);if(!fs.statSync(app).isDirectory())throw Error('Choose an extracted Mac application.');
  const frameworkRoot=path.join(app,'Contents','Frameworks'),targets=[];
- const visit=file=>{
+ const visit=(file,owner)=>{
   const stat=fs.lstatSync(file),relative=path.relative(app,file).replaceAll('\\','/');
   if(stat.isSymbolicLink()){
    safeLink('Folklet.app/'+relative,fs.readlinkSync(file));
@@ -17,12 +17,20 @@ export function macSigningPlan(app){
    return; // Framework aliases are retained, but never traversed or signed.
   }
   if(stat.isDirectory()){
-   for(const name of fs.readdirSync(file).sort())visit(path.join(file,name));
-   if(/\.(app|framework|xpc|bundle)$/.test(file))targets.push(file);
+   const bundle=/\.(app|framework|xpc|bundle)$/.test(file);
+   for(const name of fs.readdirSync(file).sort())visit(path.join(file,name),bundle?file:owner);
+   if(bundle)targets.push(file);
   }else if(stat.isFile()){
    if(stat.nlink>1)throw Error('Mac signing cannot modify linked executable files');
    const header=Buffer.alloc(4),fd=fs.openSync(file,'r');let count;try{count=fs.readSync(fd,header,0,4,0);}finally{fs.closeSync(fd);}
-   if(count===4&&machOMagic.has(header.toString('hex')))targets.push(file);
+   if(count===4&&machOMagic.has(header.toString('hex'))){
+    // Signing a bundle's main binary seals its containing bundle too. Leave it
+    // to the final bundle step, after Helpers/Libraries regardless of alphabetic
+    // order (Electron Framework sorts before its unsigned crashpad helper).
+    const relativeToOwner=owner?path.relative(owner,file).replaceAll('\\','/'):'',entryName=owner?path.basename(owner).replace(/\.(app|framework|xpc|bundle)$/,''):'';
+    const main=owner&&(owner.endsWith('.framework')?(relativeToOwner===entryName||new RegExp('^Versions/[^/]+/'+entryName.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$').test(relativeToOwner)):relativeToOwner==='Contents/MacOS/'+entryName);
+    if(!main)targets.push(file);
+   }
   }else throw Error('Unexpected framework entry');
  };
  visit(frameworkRoot);
@@ -43,13 +51,16 @@ export function signMacBundle(app,{runProcess=spawnSync}={}){
   const outer=target===plan.at(-1),containsRepair=modified.some(file=>file.startsWith(target+path.sep));
   // A newly signed main executable can make a bundle verify successfully before
   // its resource envelope is sealed. Always reseal a repaired code container.
-  if(!outer&&!containsRepair&&invoke(['--verify','--strict',target],true).status===0)continue;
-  const signature=invoke(['--display',target],true),signed=signature.status===0;
+  const verification=invoke(['--verify','--strict',target],true);
+  if(!outer&&!containsRepair&&verification.status===0)continue;
+  const signature=invoke(['--display','--verbose=4',target],true),signed=signature.status===0,adHoc=/^Signature=adhoc\s*$/m.test(String(signature.stderr||''));
   if(!signed&&!/code object is not signed at all/.test(String(signature.stderr||'')))throw Error('Mac component signature could not be inspected: '+path.basename(target));
   // Valid upstream signatures remain intact. A signed container is resealed
-  // only if this pass repaired one of its nested code objects (or it is the
-  // intentionally modified outer app); other invalid signatures fail closed.
-  if(signed&&!outer&&!containsRepair)throw Error('Unexpected invalid Mac component signature: '+path.basename(target));
+  // only if this pass repaired nested code, it is the changed outer app, or it
+  // has only an ad-hoc development seal. Ad-hoc seals identify bytes, not a
+  // publisher, and must be regenerated when preparing the Electron bundle.
+  // Invalid publisher signatures still fail closed. Runtime tools are excluded.
+  if(signed&&!outer&&!containsRepair&&!adHoc)throw Error('Unexpected invalid Mac component signature: '+path.basename(target)+'; '+String(verification.stderr||'No verification detail.').slice(0,2000));
   requireSuccess(['--force','--sign','-',...(signed?['--preserve-metadata=entitlements,flags,runtime']:[]),target]);
   requireSuccess(['--verify','--strict',target]);modified.push(target);
  }

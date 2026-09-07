@@ -9,13 +9,13 @@
     "test": "node --test *.test.mjs electron/*.test.cjs"
   },
   "dependencies": {
-    "playwright": "1.62.1"
+    "playwright": "1.62.1",
+    "yauzl": "3.4.0"
   },
   "engines": {
     "node": ">=24"
   },
   "devDependencies": {
-    "yauzl": "3.4.0",
     "yazl": "3.3.1"
   }
 }

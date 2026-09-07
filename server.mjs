@@ -25,15 +25,18 @@ import {TelegramNotifications} from './notifications.mjs';
 import {normalizeFallback} from './fallback.mjs';
 import {routineSummary} from './routine-policy.mjs';
 import {AppChanges} from './app-changes.mjs';
+import {PluginConnections} from './plugin-connections.mjs';
+import {PluginPackages} from './plugin-packages.mjs';
 const root=path.dirname(fileURLToPath(import.meta.url));
 const store=new Store(process.env.CREW_DATA||path.join(root,'data'));
 const computers=new Computers(store.root,(b,e)=>store.event(b,e));
 const providers=new ProviderStore(store.root),learning=new Learning({dataRoot:store.root,store}),nativeComputer=new NativeComputer();
 const skills=new Skills({dataRoot:store.root,store}),recall=new Recall({store}),integrations=new IntegrationStore({dataRoot:store.root,store}),notifications=new TelegramNotifications({dataRoot:store.root});
+const plugins=new PluginConnections({dataRoot:store.root,store}),pluginPackages=new PluginPackages({dataRoot:store.root,skills,connections:plugins});
 const engine=new Engine(store,computers,{providers}),token=randomBytes(32).toString('hex');
 const appChanges=new AppChanges({appRoot:root,dataRoot:store.root,store,learning});
 engine.learning=learning;engine.nativeComputer=nativeComputer;
-Object.assign(engine,{skills,recall,integrations,notifications});
+Object.assign(engine,{skills,recall,integrations,notifications,plugins});
 engine.appChanges=appChanges;
 const account=new AccountConnection({executable:resolveCrewEngine()});
 const modelSettings=new ModelSettings({account,providers});
@@ -53,7 +56,7 @@ const server=http.createServer(async(req,res)=>{try{
  }
  if(req.method==='GET'&&url.pathname==='/health')return json(res,200,{app:'Crew',version:5,pid:process.pid});
  if(req.method==='GET'&&url.pathname==='/'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'"});return res.end(fs.readFileSync(path.join(root,'index.html'),'utf8').replace('__TOKEN__',token));}
- if(req.method==='GET'&&['/app.js','/markdown.mjs','/settings-ui.mjs','/model-settings-ui.mjs','/review-ui-common.mjs','/skills-ui.mjs','/learning-review-ui.mjs','/recall-ui.mjs','/integrations-ui.mjs','/notifications-ui.mjs','/routine-policy-ui.mjs','/fallback-ui.mjs','/app-changes-ui.mjs','/style.css'].includes(url.pathname)){res.writeHead(200,{'Content-Type':!url.pathname.endsWith('.css')?'text/javascript':'text/css','Cache-Control':'no-store'});return res.end(fs.readFileSync(path.join(root,url.pathname.slice(1))));}
+ if(req.method==='GET'&&['/app.js','/markdown.mjs','/settings-ui.mjs','/model-settings-ui.mjs','/review-ui-common.mjs','/skills-ui.mjs','/learning-review-ui.mjs','/recall-ui.mjs','/integrations-ui.mjs','/notifications-ui.mjs','/routine-policy-ui.mjs','/fallback-ui.mjs','/app-changes-ui.mjs','/plugins-ui.mjs','/style.css'].includes(url.pathname)){res.writeHead(200,{'Content-Type':!url.pathname.endsWith('.css')?'text/javascript':'text/css','Cache-Control':'no-store'});return res.end(fs.readFileSync(path.join(root,url.pathname.slice(1))));}
  const pwaAssets={'/manifest.webmanifest':'application/manifest+json','/service-worker.js':'text/javascript','/pwa.js':'text/javascript','/offline.html':'text/html; charset=utf-8','/icons/crew-192.png':'image/png','/icons/crew-512.png':'image/png','/icons/crew-maskable-512.png':'image/png','/icons/apple-touch-icon.png':'image/png','/icons/crew.ico':'image/x-icon'};
  if(req.method==='GET'&&pwaAssets[url.pathname]){res.writeHead(200,{'Content-Type':pwaAssets[url.pathname],'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});return res.end(fs.readFileSync(path.join(root,url.pathname.slice(1))));}
  if(req.headers['x-crew-token']!==token)return json(res,403,{error:'Connection expired. Refresh the app.'});
@@ -66,6 +69,8 @@ const server=http.createServer(async(req,res)=>{try{
   if(url.pathname==='/api/memory-policy')return json(res,200,learning.memoryPolicy());
   if(url.pathname==='/api/learning-policy')return json(res,200,learning.memoryPolicy());
   if(url.pathname==='/api/learning-memory')return json(res,200,{text:learning.readMemory(url.searchParams.get('botId'),url.searchParams.get('scope'))});
+  if(url.pathname==='/api/plugins')return json(res,200,plugins.list());
+  if(url.pathname==='/api/plugin-packages')return json(res,200,pluginPackages.list());
   if(url.pathname==='/api/skills')return json(res,200,skills.list());
   if(url.pathname==='/api/app-changes')return json(res,200,appChanges.list());
   if(url.pathname==='/api/app-change')return json(res,200,appChanges.get(url.searchParams.get('id')));
@@ -78,7 +83,7 @@ const server=http.createServer(async(req,res)=>{try{
   if(url.pathname==='/api/routine-policy')return json(res,200,store.routinePolicy(url.searchParams.get('routineId')));
   if(url.pathname==='/api/fallback-settings'){const bot=store.bot(url.searchParams.get('id'));return json(res,200,{id:bot.id,fallback:normalizeFallback(bot.fallback),providers:providers.list()});}
   if(url.pathname==='/api/native-status')return json(res,200,nativeComputer.status());
-  if(url.pathname==='/api/guide'){const name=url.searchParams.get('name'),titles={'QUICKSTART.md':'Quick start','HOSTING.md':'Cloud hosting','PROVIDERS.md':'Models & connections','FEATURES.md':'Skills, learning & connections','SECURITY.md':'Security & privacy','RELEASE-CHECKS.md':'Release checks','FEATURE-ROADMAP.md':'Feature roadmap'};if(!titles[name])throw Error('Guide not found');return json(res,200,{title:titles[name],text:fs.readFileSync(path.join(root,name),'utf8')});}
+  if(url.pathname==='/api/guide'){const name=url.searchParams.get('name'),titles={'QUICKSTART.md':'Quick start','HOSTING.md':'Cloud hosting','PROVIDERS.md':'Models & connections','PLUGINS.md':'Plugins & portable bundles','FEATURES.md':'Skills, learning & connections','SECURITY.md':'Security & privacy','RELEASE-CHECKS.md':'Release checks','FEATURE-ROADMAP.md':'Feature roadmap'};if(!titles[name])throw Error('Guide not found');return json(res,200,{title:titles[name],text:fs.readFileSync(path.join(root,name),'utf8')});}
   if(url.pathname==='/api/account-status')return json(res,200,await account.status());
   if(url.pathname==='/api/mobile-status')return json(res,200,{...mobile.status(),platform:process.platform,setup:phoneSetup.state});
   if(url.pathname==='/api/state')return json(res,200,{version:3,bots:store.db.bots.filter(b=>!b.archived).map(view),tasks:store.db.tasks.slice(-300),routines:store.db.routines.map(r=>({...r,policySummary:routineSummary(r)})),routineCalendar:calendarDays(store.db.routines),channels:store.db.channels,notifications:store.db.notifications});
@@ -94,6 +99,13 @@ const server=http.createServer(async(req,res)=>{try{
  if(req.method!=='POST')return json(res,404,{error:'Not found'});
  const a=await readJSON(req);
  const route=url.pathname.slice(5);
+ if(route==='plugin-save')return json(res,200,plugins.save(a));
+ if(route==='plugin-connect')return json(res,200,await plugins.connect(a));
+ if(route==='plugin-remove')return json(res,200,await plugins.remove(a.id));
+ if(route==='plugin-inspect')return json(res,200,await pluginPackages.inspect(a));
+ if(route==='plugin-file')return json(res,200,await pluginPackages.readFile(a));
+ if(route==='plugin-install')return json(res,200,await pluginPackages.install(a));
+ if(route==='plugin-package-remove')return json(res,200,await pluginPackages.remove(a.id));
  if(route==='provider-save')return json(res,200,providers.save(a));
  if(route==='provider-remove'){if(store.db.bots.some(b=>!b.archived&&b.providerId===a.id))throw Error('Choose another connection for the bots using this provider before removing it.');providers.remove(a.id);return json(res,200,{ok:true});}
  if(route==='provider-login')return json(res,200,providers.beginOpenRouterLogin({callbackUrl:`http://127.0.0.1:${server.address().port}/auth/openrouter/callback`,name:a.name,persistKey:a.persistKey===true}));
@@ -187,5 +199,5 @@ const server=http.createServer(async(req,res)=>{try{
  else return json(res,404,{error:'Not found'});
  json(res,200,{ok:true});
 }catch(e){if(!res.headersSent)json(res,400,{error:e.message});else res.end();}});
-server.listen(Number(process.env.CREW_PORT||4318),'127.0.0.1',async()=>{computers.protectControlOrigin(`http://127.0.0.1:${server.address().port}`);console.log(`FOLKLET is running at http://127.0.0.1:${server.address().port}`);mobile=new MobileAccess({dataRoot:store.root,appRoot:root,localPort:server.address().port,localToken:token,port:Number(process.env.CREW_MOBILE_PORT||4320),protectOrigin:origin=>computers.protectControlOrigin(origin)});try{await mobile.start();}catch(e){mobile.lastError=e.message;console.error('Phone access:',e.message);}});
-async function close(){appChanges.close();phoneSetup.close();nativeComputer.setEnabled(false);await mobile?.close();await account.close();await engine.close();await nativeComputer.close();providers.close();integrations.close();await notifications.close();server.close();process.exit();}process.on('SIGINT',close);process.on('SIGTERM',close);
+server.listen(Number(process.env.CREW_PORT||4318),'127.0.0.1',async()=>{computers.protectControlOrigin(`http://127.0.0.1:${server.address().port}`);plugins.protectControlOrigin(`http://127.0.0.1:${server.address().port}`);console.log(`FOLKLET is running at http://127.0.0.1:${server.address().port}`);mobile=new MobileAccess({dataRoot:store.root,appRoot:root,localPort:server.address().port,localToken:token,port:Number(process.env.CREW_MOBILE_PORT||4320),protectOrigin:origin=>{computers.protectControlOrigin(origin);plugins.protectControlOrigin(origin);}});try{await mobile.start();}catch(e){mobile.lastError=e.message;console.error('Phone access:',e.message);}});
+async function close(){appChanges.close();phoneSetup.close();nativeComputer.setEnabled(false);await mobile?.close();await account.close();await engine.close();await nativeComputer.close();providers.close();integrations.close();await plugins.close();await notifications.close();server.close();process.exit();}process.on('SIGINT',close);process.on('SIGTERM',close);

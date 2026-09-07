@@ -9,7 +9,10 @@ export const sourceFiles = [
   'README.md', 'LICENSE', 'SECURITY.md', 'CONTRIBUTING.md', 'CHANGELOG.md',
   'RELEASING.md', 'THIRD-PARTY-NOTICES.md', 'RELEASE-CHECKS.md',
   'QUICKSTART.md', 'PROVIDERS.md', 'HOSTING.md', 'BUSINESS.md', 'FEATURE-ROADMAP.md', 'FEATURES.md',
-  'package.json', 'package-lock.json',
+  'package.json', 'package-lock.json', 'PLUGINS.md',
+  'plugins-ui.mjs', 'plugins-ui.test.mjs', 'plugin-connections.mjs', 'plugin-connections.test.mjs',
+  'mcp-client.mjs', 'mcp-client.test.mjs', 'plugin-packages.mjs', 'plugin-packages.test.mjs', 'engine-plugins.test.mjs',
+  'scripts/Linux-Sandbox.mjs', 'linux-sandbox.test.mjs',
   'account.mjs', 'app.js', 'calendar.mjs', 'computer.mjs', 'engine.mjs', 'http.mjs',
   'markdown.mjs', 'mobile.mjs', 'runtime.mjs', 'server.mjs', 'store.mjs',
   'settings-ui.mjs', 'providers.mjs', 'api-agent.mjs', 'learning.mjs', 'native-computer.mjs', 'attachments.mjs',
@@ -105,9 +108,9 @@ export function collectReleaseFiles(root, kind = 'Source') {
   const files = [...sourceFiles];
   if (kind === 'Windows') {
     files.push(...windowsFiles);
-    for (const dependency of ['playwright', 'playwright-core']) {
+    for (const [dependency,version] of Object.entries({playwright:'1.62.1','playwright-core':'1.62.1',yauzl:'3.4.0',pend:'1.2.0'})) {
       const packageFile = regularFile(root, `node_modules/${dependency}/package.json`);
-      if (JSON.parse(fs.readFileSync(packageFile)).version !== '1.62.1') throw Error(`Unexpected ${dependency} version`);
+      if (JSON.parse(fs.readFileSync(packageFile)).version !== version) throw Error(`Unexpected ${dependency} version`);
       files.push(...tree(root, `node_modules/${dependency}`));
     }
     const pins = JSON.parse(fs.readFileSync(regularFile(root, 'scripts/dependencies.json')));

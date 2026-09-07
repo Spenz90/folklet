@@ -2,7 +2,7 @@
 
 The seven ideas researched on September 5, 2026 are implemented in the **0.6.0 community-preview source**. An additional source-draft workflow makes app improvements reviewable before application. Use [the feature guide](FEATURES.md) for instructions and [release checks](RELEASE-CHECKS.md) for validation status. Implementation does not mean every device, provider or external service has had a live test.
 
-“Hermes” means Nous Research's Hermes Agent; “Clawbot” was interpreted as OpenClaw. Their documentation informed the ideas below. Folklet implements its own bounded versions and does not import their executable plugins or promise feature parity.
+“Hermes” means Nous Research's Hermes Agent; “Clawbot” was interpreted as OpenClaw. Their documentation informed the ideas below. Folklet implements its own bounded versions. Version 0.6.1 adds portable imports and external tool connections, with the compatibility limits described below; it does not promise feature parity.
 
 | Feature | Included in 0.6 | Deliberate limits |
 | --- | --- | --- |
@@ -20,6 +20,14 @@ App improvement proposals can become separate source drafts. Bots can edit bound
 
 Draft tests use Node file-access and child-process restrictions, with credentials removed from their environment. **Run only code you trust. These Node restrictions are not a security sandbox; network and local services remain reachable.** Selected tests execute proposed code and require review; a pass is not full release certification. No dependencies, private chats, credentials or runtime binaries are copied into the draft. See [the app-change guide](FEATURES.md#review-an-app-change-draft).
 
+## Portable plugins and connected tools in 0.6.1
+
+**Plugins** adds ZIP inspection, individual file previews and import of supported instruction skills and MCP connection definitions. Imported skills wait for review and per-bot enabling; connections start disabled. The host owner separately chooses tools and bots, approves starting each connection, and approves every tool call. Restarts require manual reconnection.
+
+Local stdio and Streamable HTTP MCP servers can supply tools. Native OpenClaw tools need a separate running gateway and manually entered tool schemas. Native Hermes Python plugins, hooks, channels and provider extensions need their original runtime or a dedicated adapter. Importing never runs those entry points or installs dependencies. Starting an approved local MCP program does execute trusted code with host-account access; recognized package runners need additional consent.
+
+See [Plugins](PLUGINS.md) for the compatibility matrix and setup. Automated fixtures do not establish compatibility with every upstream package or service; actual upstream integration checks remain separate validation work.
+
 ## Inspiration sources
 
 - Skills: [Hermes skills](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills) and [OpenClaw skills](https://docs.openclaw.ai/tools/skills).
@@ -28,4 +36,4 @@ Draft tests use Node file-access and child-process restrictions, with credential
 - Integrations and notifications: [Hermes MCP](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp) and [OpenClaw channels](https://docs.openclaw.ai/channels).
 - Fallback: [OpenClaw model failover](https://docs.openclaw.ai/concepts/model-failover).
 
-Folklet remains a personal local workspace with optional private hosting. This release does not create a public managed service, purchase a host, deploy a server, publish an App Store app or automatically install third-party packages. Platform and provider testing, publisher signing and real-device checks remain the outstanding release work; no dates are promised.
+Folklet remains a personal local workspace with optional private hosting. This release does not create a public managed service, purchase a host, deploy a server or publish an App Store app. Plugin import does not install third-party packages; an explicitly approved local server command can do so when started. Platform and provider testing, upstream service checks, publisher signing and real-device checks remain outstanding release work; no dates are promised.

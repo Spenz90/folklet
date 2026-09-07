@@ -67,6 +67,8 @@ Do not use a generic “zip this folder” action on a working Folklet installat
 
 The 0.6.1 Checks workflow also launches the extracted desktop with an empty, isolated workspace on its matching runner. It records the rendered workspace, startup/shutdown result and exact archive hash, retains evidence and checked downloads as temporary workflow artifacts, and checks the locked npm dependencies against the advisory registry. An artifact is available only after its job passes. Workflow artifacts are not a published GitHub Release.
 
+On Ubuntu runners, Linux smoke checks install and remove an ephemeral AppArmor user-namespace profile scoped to the exact extracted Electron executable. The normal packaged launcher keeps Electron's sandbox enabled. Users whose Linux policy requires that profile can explicitly run the optional `Setup Linux sandbox.sh`; ordinary source setup never invokes sudo. See [Linux startup help](QUICKSTART.md).
+
 Run the mechanical release gate on the matching artifact and its startup evidence:
 
 ```sh

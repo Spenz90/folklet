@@ -1,6 +1,6 @@
 # Make Folklet more useful
 
-Folklet 0.6 adds reusable skills, conversation recall, reviewed memory, routine reliability, GitHub reading, private Telegram updates and approved model fallback. Start with one feature and a small task. These are local workspace features; they do not require buying a Folklet service or a cloud host.
+Folklet 0.6 adds reusable skills, conversation recall, reviewed memory, routine reliability, GitHub reading, private Telegram updates and approved model fallback. Version 0.6.1 also adds portable plugin imports and external tools. Start with one feature and a small task. These are local workspace features; they do not require buying a Folklet service or a cloud host.
 
 Open **My workspace** on desktop or **Settings** on the phone for workspace controls. Add integrations and notification credentials on the host. A paired phone uses the access already configured there. For first-time setup, read the [Quick start](QUICKSTART.md).
 
@@ -8,7 +8,15 @@ Open **My workspace** on desktop or **Settings** on the phone for workspace cont
 
 Open **Skills** to write instructions or ask a bot to propose a procedure after a useful task. Give it a title, when to use it, steps, examples and a checklist for checking the result.
 
-Review and accept a revision, then enable the skill for the bots that should use it. Acceptance and enabling are separate choices. Later revisions remain drafts until reviewed. Import/export uses Folklet's instruction-skill JSON format; imported revisions also need review. Skills are instruction documents and never install executable packages or grant extra tool permissions.
+Review and accept a revision, then enable the skill for the bots that should use it. Acceptance and enabling are separate choices. Later revisions remain drafts until reviewed. **Import skill** accepts Folklet instruction-skill JSON or SKILL.md with simple name and description frontmatter; export uses Folklet JSON. Imported revisions also need review. Skills are instruction documents and never install executable packages or grant extra tool permissions.
+
+## Bring in plugins and external tools
+
+On the host, open **Plugins → Import plugin ZIP**. Inspect its compatibility notes and individual files, then import the supported parts. Skills become pending drafts and tool connections stay disabled, with no bot access. Review skills under **Skills**; configure tool and bot access under **Plugins**.
+
+You can also choose **Add tool connection** for a local MCP program, an MCP server URL or a separately running OpenClaw gateway. Every tool call needs your approval. Starting a local program is a separate trust decision: it can use your computer account's files and network. Recognized package runners need an additional download-and-run consent.
+
+Portable Hermes/OpenClaw instructions and MCP tools are supported within the [compatibility matrix](PLUGINS.md#what-works). Native Hermes Python, hooks, providers and channels are not loaded; native OpenClaw tools remain in their gateway and need manual tool definitions. Reconnect tool connections after each Folklet restart. Read the [plugin setup guide](PLUGINS.md) for exact steps, credentials and cancellation limits.
 
 ## Find past work
 
@@ -40,7 +48,7 @@ On the host, open **Integrations → Add GitHub repository**. Choose one owner/r
 
 This first integration reads repository issues and pull requests. It cannot post, edit, merge or run repository code. Public repositories can work without a token. For a private repository, use a token limited to that repository and the required read permissions. Review the visible access before saving, and remove the integration when it is no longer needed. Changing the repository clears the old token unless you provide it again.
 
-GitHub content is untrusted input. Relevant text returned by the tool goes to the model handling the task. This is a dedicated integration, not a general Hermes, OpenClaw or MCP plugin importer.
+GitHub content is untrusted input. Relevant text returned by the tool goes to the model handling the task. This dedicated read-only integration is separate from **Plugins**, where external servers can offer additional actions under their own permissions and per-call approval.
 
 ## Receive private Telegram updates
 

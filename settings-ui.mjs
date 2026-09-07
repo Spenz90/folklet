@@ -3,6 +3,7 @@ import {createSkillsUI} from './skills-ui.mjs';
 import {createLearningReviewUI} from './learning-review-ui.mjs';
 import {createRecallUI} from './recall-ui.mjs';
 import {createIntegrationsUI} from './integrations-ui.mjs';
+import {createPluginsUI} from './plugins-ui.mjs';
 import {createNotificationsUI} from './notifications-ui.mjs';
 import {createFallbackUI} from './fallback-ui.mjs';
 import {createRoutinePolicyUI} from './routine-policy-ui.mjs';
@@ -10,11 +11,12 @@ export function createSettingsUI({api,modal,refresh,getBots,accountPanel,md,onSo
  const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const types={openai:['OpenAI','OpenAI API key'],anthropic:['Anthropic','Claude API key'],gemini:['Google Gemini','Gemini API key'],openrouter:['OpenRouter','Many model families through one connection'],ollama:['Ollama','Models running on your own machine'],custom:['Custom endpoint','An OpenAI-compatible Chat Completions API']};
  const modelUI=createModelSettingsUI({api,modal,refresh,getBots});
+ const pluginsUI=createPluginsUI({api,modal,getBots});
  const skillsUI=createSkillsUI({api,modal,refresh,getBots,onSource}),learningUI=createLearningReviewUI({api,modal,refresh,getBots,onSource,onAppChange}),recallUI=createRecallUI({api,modal,getBots,onSource}),integrationsUI=createIntegrationsUI({api,modal,getBots}),notificationsUI=createNotificationsUI({api,modal}),fallbackUI=createFallbackUI({api,modal,refresh,getBots}),routineUI=createRoutinePolicyUI({api,modal,refresh});
  let oauthTimer;const busy=new WeakSet();
  const row=(title,detail,action)=>`<button class="settings-option" ${action}><span><b>${esc(title)}</b><small>${esc(detail)}</small></span><span>›</span></button>`;
  function guideText(text){
-  const known=new Set(['QUICKSTART.md','HOSTING.md','PROVIDERS.md','FEATURES.md','SECURITY.md','RELEASE-CHECKS.md','FEATURE-ROADMAP.md']),links=[];
+  const known=new Set(['QUICKSTART.md','HOSTING.md','PROVIDERS.md','FEATURES.md','SECURITY.md','RELEASE-CHECKS.md','FEATURE-ROADMAP.md','PLUGINS.md']),links=[];
   const marked=String(text).replace(/\[([^\]\n]+)\]\(([A-Z-]+\.md)(?:#[^)\s]+)?\)/g,(original,label,name)=>{if(!known.has(name))return original;const index=links.push({label,name})-1;return '\uE123'+index+'\uE124';});
   return md(marked).replace(/\uE123(\d+)\uE124/g,(original,index)=>{const link=links[Number(index)];return link?'<button type="button" class="guide-link" data-settings-guide="'+esc(link.name)+'">'+esc(link.label)+'</button>':original;});
  }
@@ -72,7 +74,7 @@ export function createSettingsUI({api,modal,refresh,getBots,accountPanel,md,onSo
  async function guide(name){modal('FOLKLET guides','Read setup and connection help.','<div id="settings-guide">Loading guide…</div>','guide');const target=$('settings-guide'),view=$('modal-error');try{const doc=await api('guide?name='+encodeURIComponent(name));if(current(view))modal(esc(doc.title),'FOLKLET guides','<div class="message-text settings-guide">'+guideText(doc.text)+'</div>','guide');}catch(e){loadError(view,target,e,'data-settings-guide="'+esc(name)+'"');}}
  function cloud(){modal('Run FOLKLET in the cloud','Keep your bots available when your computer is off.','<p class="note">You can host your own private FOLKLET on a Linux VPS. Start with 4 GB RAM for light use; browsers and concurrent bots may need 8 GB or more. Model usage is billed separately by your provider.</p><div class="settings-options">'+row('Set up your own VPS','Step-by-step deployment files and private phone access.','data-settings-guide="HOSTING.md"')+row('See current Hetzner plans','Low-cost server options; availability and prices vary.','data-cloud-link="hetzner"')+row('See current DigitalOcean plans','Another option with straightforward monthly plans.','data-cloud-link="digitalocean"')+'</div><p class="note">Hosting is purchased directly from the provider. FOLKLET does not order servers, charge your card or promise a managed service in this preview.</p>','cloud-hosting');}
  function welcome(){modal('Make FOLKLET yours','A few steps, then your first teammate.','<div class="settings-options">'+row('1. Connect an account','Use ChatGPT, an API key, OpenRouter sign-in or a local model.','data-crew-settings="connections"')+row('2. Create your first bot','Give it a name and a job.','data-create')+row('3. Read the quick start','Simple setup, phone access and common fixes.','data-settings-guide="QUICKSTART.md"')+'</div><p class="note">Your local workspace is yours. Cloud hosting is optional.</p>','welcome');}
- const screens={models:modelUI.listBots,connections:providers,learning:learningUI.open,skills:skillsUI.open,recall:recallUI.open,integrations:integrationsUI.open,notifications:notificationsUI.open,computer,cloud,welcome};
+ const screens={models:modelUI.listBots,connections:providers,learning:learningUI.open,skills:skillsUI.open,plugins:pluginsUI.open,recall:recallUI.open,integrations:integrationsUI.open,notifications:notificationsUI.open,computer,cloud,welcome};
  document.addEventListener('click',async event=>{const el=event.target.closest('button'),d=el?.dataset;if(!d)return;const view=$('modal-error');try{
   if(d.fallbackBot){await fallbackUI.edit(d.fallbackBot);return;}if(d.routinePolicy){await routineUI.edit(d.routinePolicy);return;}
   if(d.crewSettings&&screens[d.crewSettings])await screens[d.crewSettings]();

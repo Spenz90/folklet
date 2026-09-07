@@ -278,7 +278,7 @@ test('a missing saved rollout recovers with dynamic tools and the last 20 local 
  for(const resumeError of ['no rollout found for thread id old-thread','thread not found: old-thread','Thread old-thread not found']){
   const mock=mockCodex({resumeError});
   const {engine,bot}=harness(t,{spawnProcess:()=>mock.proc}),b=bot('Writer');
-  b.threadId='old-thread';b.toolVersion=5;b.previousThreads=['even-older-thread'];
+  b.threadId='old-thread';b.toolVersion=6;b.previousThreads=['even-older-thread'];
   b.messages=Array.from({length:25},(_,i)=>({id:'message-'+i,role:i%2?'assistant':'user',text:'saved message ['+i+']'}));
   const savedMessages=structuredClone(b.messages);
   const live=await engine.connect(b);
@@ -302,7 +302,7 @@ test('resume auth, network and unrelated rollout errors do not replace a saved t
  for(const resumeError of ['Unauthorized: sign in again','Connection reset by peer','thread/resume timed out','rollout read failed: permission denied']){
   const mock=mockCodex({resumeError});
   const {engine,bot}=harness(t,{spawnProcess:()=>mock.proc}),b=bot('Writer');
-  b.threadId='old-thread';b.toolVersion=5;b.previousThreads=['even-older-thread'];
+  b.threadId='old-thread';b.toolVersion=6;b.previousThreads=['even-older-thread'];
   b.messages=[{role:'assistant',text:'Keep this history'}];
   await assert.rejects(engine.connect(b),error=>error.message===resumeError);
   assert.equal(b.threadId,'old-thread');
@@ -315,7 +315,7 @@ test('resume auth, network and unrelated rollout errors do not replace a saved t
 test('a failed replacement reports its error and retains the original thread reference',async t=>{
  const mock=mockCodex({resumeError:'no rollout found for thread id old-thread',startError:'Connection reset while creating replacement'});
  const {engine,bot}=harness(t,{spawnProcess:()=>mock.proc}),b=bot('Writer');
- b.threadId='old-thread';b.toolVersion=5;b.previousThreads=['even-older-thread'];
+ b.threadId='old-thread';b.toolVersion=6;b.previousThreads=['even-older-thread'];
  await assert.rejects(engine.connect(b),/Connection reset while creating replacement/);
  assert.equal(b.threadId,'old-thread');
  assert.deepEqual(b.previousThreads,['even-older-thread']);

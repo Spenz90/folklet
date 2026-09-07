@@ -7,6 +7,7 @@ import http from 'node:http';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {setTimeout as delay} from 'node:timers/promises';
+import yazl from 'yazl';
 import {csrfFor} from './mobile.mjs';
 
 const appRoot=path.dirname(fileURLToPath(import.meta.url));
@@ -26,6 +27,9 @@ function request(port,url,{method='GET',body,headers={}}={}){
 }
 const completion=content=>({choices:[{message:{role:'assistant',content},finish_reason:'stop'}]});
 const toolCalls=calls=>({choices:[{message:{role:'assistant',content:null,tool_calls:calls.map(([name,args],i)=>({id:'fixture-call-'+i,type:'function',function:{name,arguments:JSON.stringify(args)}}))},finish_reason:'tool_calls'}]});
+const pluginRoutes=[['plugins','GET'],['plugin-packages','GET'],...['plugin-save','plugin-connect','plugin-remove','plugin-inspect','plugin-file','plugin-install','plugin-package-remove'].map(route=>[route,'POST'])];
+const pluginTools=[{name:'fixture_echo',description:'Return the exact reviewed fixture text.',inputSchema:{type:'object',properties:{text:{type:'string'}},required:['text'],additionalProperties:false}},{name:'fixture_unselected',description:'An unselected fixture capability.',inputSchema:{type:'object'}}];
+async function zipFiles(files){const archive=new yazl.ZipFile();for(const file of files)archive.addBuffer(Buffer.from(file.content),file.path);archive.end();const chunks=[];for await(const chunk of archive.outputStream)chunks.push(chunk);return Buffer.concat(chunks).toString('base64');}
 
 // This test launches only its own loopback host and a synthetic model endpoint.
 // It never loads an account, launches a browser, or captures/controls a desktop.
@@ -33,13 +37,21 @@ test('isolated host integrates providers, workspace tools, learning and phone bo
  const fixture=fs.mkdtempSync(path.join(os.tmpdir(),'crew-server-integration-'));
  const dataRoot=path.join(fixture,'data'),accountRoot=path.join(fixture,'unused-account');
  fs.mkdirSync(accountRoot);let child,port,token,stderr='',stdout='',modelFailure=false,releaseHeldTurn;
- const calls=[];
+ const calls=[],pluginCalls=[];let pluginConnectionId;
  const mock=http.createServer(async(req,res)=>{
   try{
    const chunks=[];for await(const chunk of req)chunks.push(chunk);
    const body=chunks.length?JSON.parse(Buffer.concat(chunks)):undefined;
-   calls.push({url:req.url,headers:req.headers,body});
    res.setHeader('Content-Type','application/json');
+   if(req.url==='/mcp'){
+    pluginCalls.push({method:req.method,headers:req.headers,body});
+    if(req.method==='DELETE'){res.writeHead(204);return res.end();}
+    if(body?.id===undefined){res.writeHead(202);return res.end();}
+    res.setHeader('Mcp-Session-Id','fixture-plugin-session');
+    const result=body.method==='initialize'?{protocolVersion:'2025-11-25',capabilities:{tools:{}},serverInfo:{name:'HTTP fixture',version:'1'}}:body.method==='tools/list'?{tools:pluginTools}:body.method==='tools/call'?{content:[{type:'text',text:'Reviewed plugin result: '+body.params.arguments.text}]}:undefined;
+    return res.end(JSON.stringify({jsonrpc:'2.0',id:body.id,...(result?{result}:{error:{code:-32601,message:'Fixture method unavailable'}})}));
+   }
+   calls.push({url:req.url,headers:req.headers,body});
    if(req.headers.authorization!=='Bearer '+fakeKey){res.writeHead(401);return res.end(JSON.stringify({error:fakeKey}));}
    if(req.url==='/v1/models'){
     if(modelFailure){res.writeHead(503);return res.end(JSON.stringify({error:'Fixture error containing '+fakeKey}));}
@@ -51,6 +63,8 @@ test('isolated host integrates providers, workspace tools, learning and phone bo
    if(prompt.includes('FIXTURE_REASONING_WAIT'))await new Promise(resolve=>{releaseHeldTurn=resolve;});
    let response;
    if(results.length)response=completion('Fixture completed: '+results.map(r=>r.content).join('\n'));
+   else if(prompt.includes('FIXTURE_PLUGIN_LIST'))response=toolCalls([['crew_plugins',{action:'list'}]]);
+   else if(prompt.includes('FIXTURE_PLUGIN_CALL'))response=toolCalls([['crew_plugins',{action:'call',connectionId:pluginConnectionId,tool:'fixture_echo',arguments:{text:'Only this exact fixture action.'}}]]);
    else if(prompt.includes('FIXTURE_FILES'))response=toolCalls([
     ['crew_files',{action:'write',path:'outputs/fixture.txt',text:note}],
     ['crew_files',{action:'read',path:'outputs/fixture.txt'}]
@@ -110,12 +124,13 @@ test('isolated host integrates providers, workspace tools, learning and phone bo
   }
   assert.equal((await api('/api/native-status')).enabled,false);
  });
- const runTask=async(id,text,extra={})=>{
-  const created=await api('/api/send',{id,text,...extra});let task;
+ const finishTask=async taskId=>{let task;
   const until=Date.now()+5000;
-  do{task=(await state()).tasks.find(task=>task.id===created.id);if(['completed','failed','interrupted','cancelled'].includes(task.status))break;await delay(25);}while(Date.now()<until);
+  do{task=(await state()).tasks.find(task=>task.id===taskId);if(['completed','failed','interrupted','cancelled'].includes(task.status))break;await delay(25);}while(Date.now()<until);
   assert.equal(task.status,'completed',JSON.stringify(task));return task;
  };
+ const runTask=async(id,text,extra={})=>finishTask((await api('/api/send',{id,text,...extra})).id);
+ const waitApproval=async botId=>{const until=Date.now()+5000;let current;do{current=(await state()).bots.find(bot=>bot.id===botId);if(current.approval)break;await delay(25);}while(Date.now()<until);assert.ok(current.approval,'Fixture plugin call did not request approval');assert.equal(current.status,'Needs you');return current.approval;};
  let provider,bot,secondBot;
  await t.test('connection secrets stay private and API tools complete a task',async()=>{
   provider=await api('/api/provider-save',{type:'custom',name:'Fixture connection',baseUrl:`http://127.0.0.1:${mockPort}/v1`,defaultModel:'fixture-model',apiKey:fakeKey,persistKey:false});
@@ -253,8 +268,50 @@ test('isolated host integrates providers, workspace tools, learning and phone bo
   await api('/api/integration-remove',{id:integration.id});assert.equal((await api('/api/integrations')).length,0);
   const status=await api('/api/notification-status');assert.equal(status.enabled,false);assert.equal(status.hasToken,false);
  });
+ await t.test('plugin management requires owner credentials and cannot be reached by managed browsers',async()=>{
+  for(const [route,method] of pluginRoutes){
+   const options={method,...(method==='POST'?{body:{}}:{})};
+   for(const headers of [{},{'X-Crew-Token':'incorrect-fixture-token'},{'X-Crew-Token':token,'Sec-Crew-Browser':'1'},{'X-Crew-Token':token,'Sec-Crew-Browser':''}]){
+    const denied=await request(port,'/api/'+route,{...options,headers});assert.equal(denied.status,403,route);assert.ok(!denied.text.includes(token));
+   }
+  }
+  assert.deepEqual(await api('/api/plugins'),[]);assert.deepEqual(await api('/api/plugin-packages'),[]);assert.equal(pluginCalls.length,0);
+  await api('/api/plugin-save',{name:'Owner endpoint is forbidden',type:'mcp',transport:'streamable-http',url:`http://127.0.0.1:${port}/api/plugins`},400);
+ });
+ await t.test('portable package routes preview exact files and install only disabled definitions and pending skills',async()=>{
+  const markdown='---\nname: fixture-review\ndescription: Check a synthetic fixture\n---\nRead the fixture and verify its exact text.\n';
+  const file=(path,content)=>({path,content:typeof content==='string'?content:JSON.stringify(content)});
+  const files=[file('plugin.json',{$schema:'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json',name:'fixture-package',version:'1.0.0'}),file('skills/fixture-review/SKILL.md',markdown),file('mcp.json',{$schema:'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json',mcpServers:{fixture:{type:'streamable-http',url:`http://127.0.0.1:${mockPort}/mcp`}}})];
+  const archive=await zipFiles(files),review=await api('/api/plugin-inspect',{archive});
+  assert.deepEqual([...review.files].sort(),files.map(file=>file.path).sort());
+  assert.equal(review.format,'agent-plugins-v1');assert.match(review.reviewHash,/^[a-f0-9]{64}$/);assert.equal(pluginCalls.length,0);assert.deepEqual(await api('/api/plugins'),[]);
+  const preview=await api('/api/plugin-file',{id:review.id,path:'skills/fixture-review/SKILL.md',reviewHash:review.reviewHash});assert.equal(preview.text,markdown);assert.equal(preview.truncated,false);
+  await api('/api/plugin-file',{id:review.id,path:'skills/fixture-review/SKILL.md',reviewHash:'0'.repeat(64)},400);
+  await api('/api/plugin-file',{id:review.id,path:'../store.json'},400);
+  await api('/api/plugin-install',{id:review.id,reviewHash:review.reviewHash},400);
+  await api('/api/plugin-install',{id:review.id,reviewHash:'0'.repeat(64),confirmed:true},400);
+  assert.deepEqual(await api('/api/plugins'),[]);
+  const installed=await api('/api/plugin-install',{id:review.id,reviewHash:review.reviewHash,confirmed:true});assert.equal(installed.status,'installed');assert.equal(installed.connectionIds.length,1);assert.equal(installed.skillIds.length,1);
+  const definition=(await api('/api/plugins'))[0];assert.equal(definition.enabled,false);assert.equal(definition.connected,false);assert.deepEqual(definition.botIds,[]);assert.deepEqual(definition.allowedTools,[]);assert.equal(definition.hasSecrets,false);assert.equal(pluginCalls.length,0);
+  const skill=await api('/api/skill-get?id='+installed.skillIds[0]);assert.equal(skill.activeRevisionId,null);assert.equal(skill.revisions[0].status,'pending');assert.deepEqual(skill.enabledBotIds,[]);
+  assert.equal((await api('/api/plugin-file',{id:installed.id,path:'skills/fixture-review/SKILL.md',reviewHash:review.reviewHash})).text,markdown);
+  await api('/api/plugin-package-remove',{id:installed.id});assert.deepEqual(await api('/api/plugins'),[]);assert.deepEqual(await api('/api/plugin-packages'),[]);await api('/api/skill-get?id='+skill.id,undefined,400);
+ });
+ await t.test('real HTTP MCP discovery and per-bot tools require an exact owner approval before dispatch',async()=>{
+  const saved=await api('/api/plugin-save',{name:'Fixture MCP',type:'mcp',transport:'streamable-http',url:`http://127.0.0.1:${mockPort}/mcp`,botIds:[bot.id],allowedTools:['fixture_echo']});pluginConnectionId=saved.id;assert.equal(saved.connected,false);assert.equal(pluginCalls.length,0);
+  await api('/api/plugin-connect',{id:saved.id},400);assert.equal(pluginCalls.length,0);
+  const connected=await api('/api/plugin-connect',{id:saved.id,confirmed:true});assert.equal(connected.connected,true);assert.deepEqual(connected.tools.map(tool=>tool.name),['fixture_echo','fixture_unselected']);assert.deepEqual(connected.allowedTools,['fixture_echo']);
+  assert.ok(pluginCalls.every(call=>call.headers['sec-crew-browser']==='1'));assert.equal(pluginCalls.filter(call=>call.body?.method==='tools/call').length,0);
+  await runTask(bot.id,'FIXTURE_PLUGIN_LIST');let result=calls.findLast(call=>call.url==='/v1/chat/completions').body.messages.find(message=>message.role==='tool').content;assert.match(result,/fixture_echo/);assert.doesNotMatch(result,/fixture_unselected|127\.0\.0\.1|secretStorage|headerNames/);
+  await runTask(secondBot.id,'FIXTURE_PLUGIN_LIST');result=calls.findLast(call=>call.url==='/v1/chat/completions').body.messages.find(message=>message.role==='tool').content;assert.doesNotMatch(result,/Fixture MCP|fixture_echo/);
+  await runTask(secondBot.id,'FIXTURE_PLUGIN_CALL');assert.equal(pluginCalls.filter(call=>call.body?.method==='tools/call').length,0);assert.equal((await state()).bots.find(value=>value.id===secondBot.id).approval,null);
+  const created=await api('/api/send',{id:bot.id,text:'FIXTURE_PLUGIN_CALL'}),approval=await waitApproval(bot.id);assert.equal(approval.kind,'approval');assert.equal(approval.details.connectionName,'Fixture MCP');assert.equal(approval.details.tool,'fixture_echo');assert.deepEqual(approval.details.arguments,{text:'Only this exact fixture action.'});assert.equal(pluginCalls.filter(call=>call.body?.method==='tools/call').length,0);
+  await api('/api/answer',{id:bot.id,requestId:'wrong-fixture-request',answer:'accept'},400);assert.equal(pluginCalls.filter(call=>call.body?.method==='tools/call').length,0);
+  await api('/api/answer',{id:bot.id,requestId:approval.id,answer:'accept'});const finished=await finishTask(created.id);assert.match(finished.result,/Reviewed plugin result/);const invocation=pluginCalls.filter(call=>call.body?.method==='tools/call');assert.equal(invocation.length,1);assert.deepEqual(invocation[0].body.params,{name:'fixture_echo',arguments:{text:'Only this exact fixture action.'}});assert.equal((await state()).bots.find(value=>value.id===bot.id).approval,null);
+ });
  await t.test('paired phones can use provider reads but cannot administer host connections',async()=>{
   const origin='https://crew-integration.example.ts.net';await api('/api/mobile-configure',{origin});
+  for(const url of [`http://127.0.0.1:${mobilePort}/api/plugins`,origin+'/api/plugins'])await api('/api/plugin-save',{name:'Phone endpoint is forbidden',type:'mcp',transport:'streamable-http',url},400);
   const pairing=await api('/api/mobile-pair',{});
   const headers={Host:new URL(origin).host,Origin:origin};
   assert.equal((await request(mobilePort,'/api/providers',{headers})).status,401);
@@ -269,6 +326,12 @@ test('isolated host integrates providers, workspace tools, learning and phone bo
   await phone('/api/update',{id:bot.id,reasoningEffort:'high'},400);
   assert.equal((await state()).bots.find(b=>b.id===bot.id).reasoningEffort,'');
   for(const route of ['provider-save','provider-remove','provider-login','native-enable','account-login','shutdown','mobile-pair','integration-save','integration-remove','notification-configure','notification-pair','notification-check','notification-activate','notification-revoke','app-change-tests','app-change-apply','app-change-undo'])await phone('/api/'+route,{},403);
+  for(const [route,method] of pluginRoutes)await phone('/api/'+route,method==='POST'?{}:undefined,403);
+  const created=await api('/api/send',{id:bot.id,text:'FIXTURE_PLUGIN_CALL'}),approval=await waitApproval(bot.id),before=pluginCalls.filter(call=>call.body?.method==='tools/call').length;
+  await phone('/api/answer',{id:bot.id,requestId:approval.id,answer:'accept'});await finishTask(created.id);assert.equal(pluginCalls.filter(call=>call.body?.method==='tools/call').length,before+1);
+  const pending=await api('/api/send',{id:bot.id,text:'FIXTURE_PLUGIN_CALL'}),revoked=await waitApproval(bot.id);
+  await api('/api/plugin-remove',{id:pluginConnectionId});await finishTask(pending.id);assert.deepEqual(await api('/api/plugins'),[]);assert.equal((await state()).bots.find(value=>value.id===bot.id).approval,null);assert.equal(pluginCalls.filter(call=>call.body?.method==='tools/call').length,before+1);
+  await phone('/api/answer',{id:bot.id,requestId:revoked.id,answer:'accept'},400);await runTask(bot.id,'FIXTURE_PLUGIN_CALL');assert.equal(pluginCalls.filter(call=>call.body?.method==='tools/call').length,before+1);
   for(const asset of ['skills-ui.mjs','review-ui-common.mjs','learning-review-ui.mjs','recall-ui.mjs','routine-policy-ui.mjs','fallback-ui.mjs'])await phone('/'+asset);
   assert.equal((await request(mobilePort,'/api/providers',{headers:{...authorized,'X-Crew-Token':token}})).status,403);
   const mobile=await api('/api/mobile-status');await api('/api/mobile-revoke',{deviceId:mobile.devices[0].id});await phone('/api/providers',undefined,401);

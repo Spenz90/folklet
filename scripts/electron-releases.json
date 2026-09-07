@@ -16,6 +16,7 @@
     "linux-x64": {
       "url": "https://github.com/electron/electron/releases/download/v44.2.0/electron-v44.2.0-linux-x64.zip",
       "sha256": "574f7d8cd2a82d77812849729a282b86639b050de120d58b138a126d16b48692",
+      "executableSha256": "9b827d38aacff0d69933481625c4c8f13b4732cbecd0e3477b1d2bac6102522c",
       "output": "Folklet-Linux-x64.zip"
     }
   }

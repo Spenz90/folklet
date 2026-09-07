@@ -43,3 +43,16 @@ test('skill persistence failures leave the prior active revision intact',t=>{
 test('skill storage refuses linked files and imported paths do not create files',t=>{
  const {skills,root,store}=fixture(t),outside=path.join(root,'outside');fs.mkdirSync(outside);fs.unlinkSync(skills.file);fs.symlinkSync(outside,skills.file,'junction');assert.throws(()=>new Skills({dataRoot:root,store}),/regular private file/);assert.throws(()=>skills.propose(example),/symbolic links/);assert.deepEqual(fs.readdirSync(outside),[]);
 });
+
+test('SKILL.md preserves Markdown and dependency warnings as reviewed instructions without activating metadata',t=>{
+ const {skills,bot,root,store}=fixture(t),body='# A workflow\n\n```js\nconst spaced = 1;\n```\n'+('Long instructions. '.repeat(180))+'\n',document='---\nname: review-docs\ndescription: >\n  Review a document\n  and verify its sources.\nmetadata:\n  openclaw:\n    requires:\n      bins: [gh]\ncommand-dispatch: tool\ncommand-tool: publish\n---\n'+body;
+ const imported=skills.importSkill(document);assert.equal(imported.status,'pending');assert.equal(imported.markdown,body);assert.equal(imported.whenToUse,'Review a document and verify its sources.');assert.match(imported.importSource.sha256,/^[a-f0-9]{64}$/);assert.ok(imported.requirements.some(line=>line.includes('command-dispatch')));assert.ok(imported.requirements.some(line=>line.includes('bins: [gh]')));assert.deepEqual(skills.listForBot(bot.id),[]);assert.equal(store.db.tasks.length,0);
+ skills.accept(imported.skillId,imported.revisionId);assert.match(skills.promptFor(imported.skillId,bot.id),/Requirements needing manual review/);assert.ok(skills.promptFor(imported.skillId,bot.id).includes(body));
+ const exported=skills.exportSkill(imported.skillId);assert.equal(exported.skill.markdown,body);assert.deepEqual(exported.skill.requirements,imported.requirements);assert.equal(new Skills({dataRoot:root,store}).get(imported.skillId).revisions[0].markdown,body);
+});
+
+test('Markdown parsing rejects ambiguous YAML and oversized bodies; package removal checks ownership',t=>{
+ const {skills}=fixture(t),base='---\nname: review\ndescription: Review work\n---\nBody',packageId='11111111-1111-4111-8111-111111111111';
+ for(const document of [base.replace('name: review','name: review\nname: other'),base.replace('name: review','name: &anchor review'),base.replace('description: Review work','description: [review]'),base.replace('Body','x'.repeat(24001)),base.replace('\nBody','')])assert.throws(()=>skills.importSkill(document));
+ const imported=skills.importSkill(base,{packageId});assert.throws(()=>skills.removeImported(imported.skillId,'22222222-2222-4222-8222-222222222222'),/does not belong/);assert.equal(skills.removeImported(imported.skillId,packageId),true);assert.equal(skills.removeImported(imported.skillId,packageId),false);
+});

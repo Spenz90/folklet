@@ -8,7 +8,9 @@ On desktop, workspace controls are under **My workspace** at the bottom of the s
 
 Extract the whole release archive for your platform. On Windows, open **Start Folklet.cmd**. On Mac, open **Folklet.app**. On Linux, open **Start Folklet.sh** inside the extracted Folklet folder. If your file manager does not offer Run, open a terminal there and run `sh 'Start Folklet.sh'`.
 
-Windows needs the Microsoft WebView2 Runtime and .NET Framework 4.8. Mac requires macOS 15 or later. The Linux preview needs x64, glibc 2.38 or newer, libtinfo.so.6 and Electron's desktop libraries; Ubuntu 24.04 and Debian 13 are reference targets. Mac and Linux packages have been assembled and inspected, but have not yet been run on those operating systems. These unsigned previews may trigger your OS's publisher checks; use a release you trust and [verify its checksum](RELEASING.md#verify-a-download). See the [README](README.md#start-here) for release status.
+Windows needs the Microsoft WebView2 Runtime and .NET Framework 4.8. Mac requires macOS 15 or later. The Linux preview needs x64, glibc 2.38 or newer, libtinfo.so.6 and Electron's desktop libraries; Ubuntu 24.04 and Debian 13 are reference targets. Check the matching release's [platform evidence](RELEASE-CHECKS.md) before downloading. These previews lack publisher signing and may trigger your OS's checks; use a release you trust and [verify its checksum](RELEASING.md#verify-a-download).
+
+If an Ubuntu desktop reports a sandbox startup error, the extracted Linux archive includes an optional **Setup Linux sandbox.sh**. From that folder, run `sudo sh "./Setup Linux sandbox.sh"` once, then start Folklet normally as your own user. This explicit administrator step verifies the Electron executable and installs an AppArmor user-namespace exception for its exact path. It requires AppArmor with ABI 4 support, preserves the system-wide policy and keeps Electron sandboxing enabled. Repeat it after moving the app; an administrator can remove an obsolete Folklet profile when retiring that path. Do not start Folklet itself with sudo or disable its sandbox. Ordinary `Setup.sh` source setup performs no administrator actions.
 
 Starting from source instead? Follow the [source setup commands](README.md#build-from-source). Quit any existing Folklet before setup, rebuilding or updating it.
 
@@ -55,6 +57,8 @@ Open a routine's **Reliability** settings to choose whether missed work runs onc
 
 Use **Skills** for an instruction library: review a skill revision, then enable it for selected bots. Use **Past work** to search a bot's earlier conversations and decide whether its shared channels can be included. These controls do not grant new tool permissions.
 
+To bring a skill or tool from Hermes/OpenClaw, start with the [plugin setup guide](PLUGINS.md). **Skills → Import skill** reads a single SKILL.md. On the host, **Plugins** can inspect ZIPs and configure MCP or OpenClaw gateway connections. Imported skills need review; connections start disabled, require bot/tool selection and ask before every tool call. Native plugins may need their original runtime. Local server programs require trust and can access the host's files and network.
+
 Marking an app improvement reviewed does not change the app. The host's separate **App changes** workflow lets you prepare a source draft, review it, approve selected tests and explicitly apply an exact revision with backups. Run only trusted test code: Node restrictions are not a security sandbox, and network/local services remain reachable. Folklet never applies or restarts automatically. Read [the feature guide](FEATURES.md) before using drafts, GitHub integrations, Telegram updates or fallback models.
 
 ## 6. Optional: connect your iPhone
@@ -85,6 +89,8 @@ This controls the host's real, shared desktop. A VPS controls its own desktop, n
 | Only Default reasoning is offered | For ChatGPT, choose a named model first. Other models or connections may have no verified adjustable levels in Folklet. Default still lets them work normally. |
 | Reasoning is unsupported, or settings cannot change during a task | Refresh the model choices and choose a listed level or Default. Finish or stop the active task before saving. |
 | The browser cannot start | Install a compatible browser; on Linux also check its system-library and sandbox requirements. Folklet does not disable the browser sandbox to make an unsupported setup work. |
+| A plugin says Needs connection | Reconnect it under Plugins on the host. Re-enter session-only credentials, select allowed tools and bots, and confirm trust. Connections do not restart automatically. |
+| A ZIP has unsupported components | Read its compatibility notes and [plugin guide](PLUGINS.md). Native hooks, channels or providers need their original runtime; importing files does not activate them. |
 | Phone address does not load | Keep the host awake, connect Tailscale on both devices, and check the connection in Folklet. Use the displayed HTTPS address, including port 8443. |
 | Phone setup reports a conflicting service | Folklet leaves that service intact. Review the existing Tailscale Serve configuration yourself before retrying. Never use public Funnel for Folklet. |
 | A routine runs at the wrong hour | Check the host's timezone and the routine's schedule. |

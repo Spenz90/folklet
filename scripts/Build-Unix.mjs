@@ -84,7 +84,7 @@ export function unixArchiveReadme(platform){
   'Requires a Linux x64 desktop with glibc 2.38 or later, libtinfo.so.6 and Electron desktop libraries; Ubuntu 24.04 and Debian 13 are reference targets. Extract the whole ZIP, open a terminal in the Folklet folder, and run `sh "./Start Folklet.sh"`. Keep the entire folder together. This is not an Alpine package.';
  const preview=mac?
   'This is a preview. A local ad-hoc signature is not Apple Developer ID signing or notarization. See the published release checks for native launch results and native-control helper availability, and read the Mac build/signing instructions before relying on this download. Do not disable macOS protections to launch it.':
-  'This is a preview. See the published release checks for tested systems and native desktop launch results before relying on this download. Do not disable sandboxing to bypass a startup error.';
+  'This is a preview. See the published release checks for tested systems and native desktop launch results. On Ubuntu, if startup reports that the sandbox helper is not configured, run `sudo sh "./Setup Linux sandbox.sh"` once from this folder. This opt-in setup verifies the Electron executable and installs an AppArmor user-namespace exception for its exact path; it does not disable the system-wide policy. Repeat setup after moving the app. Start Folklet normally as your own user afterward. Do not disable sandboxing to bypass a startup error.';
  return `# ${title}\n\n${start}\n\n${preview}\n\nOnce Folklet opens, choose **My workspace → Quick start**, **Connections** or **Cloud hosting** for the in-app guides. Connect your ChatGPT account or an API provider, create a bot and send a small first task. The Codex desktop app is not required.\n\nBrowser tasks need an installed supported browser; **Folklet → Install browser** downloads Folklet's browser when needed. Keep this host awake for routines and phone access.\n\nOffline guides included in this archive:\n\n- [Quick start](${guides}QUICKSTART.md)\n- [Connections and models](${guides}PROVIDERS.md)\n- [Private cloud hosting](${guides}HOSTING.md)\n- [Preview checks and limitations](${guides}RELEASE-CHECKS.md)\n- [Build and signing instructions](${guides}RELEASING.md)\n\nThese links work relative to this README after extraction. The same guides are available inside Folklet.\n`;
 }
 export async function buildUnix({platform,runtimeRoot,nativeHelper,cache=path.join(root,'.cache/electron'),output=path.join(root,'dist'),offline=false}={}){
@@ -125,8 +125,9 @@ export async function buildUnix({platform,runtimeRoot,nativeHelper,cache=path.jo
   }
   for(const relative of sourceWithoutRuntimeDuplicates(source,runtimeFiles))zip.addFile(path.join(root,relative),appBase+'/'+relative,{mode:relative.endsWith('.sh')?0o100755:0o100644});
   for(const name of ['package.json','main.cjs','policy.cjs','host.cjs','smoke.cjs'])zip.addFile(path.join(root,'electron',name),base+'/'+name,{mode:0o100644});
-  for(const library of ['playwright','playwright-core']){
-   const pkg=JSON.parse(fs.readFileSync(path.join(root,'node_modules',library,'package.json')));if(pkg.version!=='1.62.1')throw Error('Unexpected browser library');addTree(zip,path.join(root,'node_modules',library),appBase+'/node_modules/'+library);
+  const runtimeLibraries={'playwright':'1.62.1','playwright-core':'1.62.1','yauzl':'3.4.0','pend':'1.2.0'},lock=JSON.parse(fs.readFileSync(path.join(root,'package-lock.json')));
+  for(const [library,expectedVersion] of Object.entries(runtimeLibraries)){
+   const pkg=JSON.parse(fs.readFileSync(path.join(root,'node_modules',library,'package.json')));if(pkg.version!==expectedVersion||lock.packages['node_modules/'+library]?.version!==expectedVersion)throw Error('Unexpected runtime library: '+library);addTree(zip,path.join(root,'node_modules',library),appBase+'/node_modules/'+library);
   }
   for(const item of runtimeFiles)zip.addFile(path.join(runtimeRoot,item.path),appBase+'/'+item.path,{mode:0o100000|item.mode});
   if(nativeHelper)zip.addFile(nativeHelper,appBase+'/native/macos-control',{mode:0o100755});
@@ -134,7 +135,10 @@ export async function buildUnix({platform,runtimeRoot,nativeHelper,cache=path.jo
   zip.addBuffer(Buffer.from(unixArchiveReadme(platform)),isMac?'README.md':'Folklet/README.md',{mode:0o100644});
   zip.addFile(path.join(root,'LICENSE'),isMac?'LICENSE':'Folklet/CREW-LICENSE',{mode:0o100644});
   if(isMac){const png=fs.readFileSync(path.join(root,'icons/crew-512.png'));const chunk=Buffer.alloc(8);chunk.write('ic09');chunk.writeUInt32BE(png.length+8,4);const header=Buffer.alloc(8);header.write('icns');header.writeUInt32BE(png.length+16,4);zip.addBuffer(Buffer.concat([header,chunk,png]),'Folklet.app/Contents/Resources/crew.icns',{mode:0o100644});}
-  else zip.addBuffer(Buffer.from('#!/bin/sh\nset -eu\ncd -- "$(dirname -- "$0")"\nexec ./crew "$@"\n'),'Folklet/Start Folklet.sh',{mode:0o100755});
+  else{
+   zip.addBuffer(Buffer.from('#!/bin/sh\nset -eu\ncd -- "$(dirname -- "$0")"\nexec ./crew "$@"\n'),'Folklet/Start Folklet.sh',{mode:0o100755});
+   zip.addBuffer(Buffer.from('#!/bin/sh\nset -eu\n[ "$(id -u)" -eq 0 ] || { echo \'Run sudo sh "./Setup Linux sandbox.sh" only when Ubuntu reports a sandbox startup error.\' >&2; exit 1; }\nunset NODE_OPTIONS NODE_PATH\nfolklet_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)\nexec "$folklet_root/resources/app/crew/runtime/node" "$folklet_root/resources/app/crew/scripts/Linux-Sandbox.mjs" --install "$folklet_root/crew"\n'),'Folklet/Setup Linux sandbox.sh',{mode:0o100755});
+  }
   zip.end();await done;
  }catch(error){zip.outputStream.destroy(error);await done.catch(()=>{});throw error;}finally{input.close();}
  await verifyUnixArchive(temp,platform);fs.renameSync(temp,destination);
@@ -147,10 +151,15 @@ export async function verifyUnixArchive(file,platform){
   const mac=platform.startsWith('darwin-'),base=mac?'Folklet.app/Contents/Resources/app':'Folklet/resources/app';
   for(const entry of list){archivePath(entry.fileName);if(/(^|\/)(data|profile|browser-profiles|\.env|auth\.json)(\/|$)/i.test(entry.fileName))throw Error('Private data in desktop archive');if(((entry.externalFileAttributes>>>16)&0o170000)===0o120000)safeLink(entry.fileName,(await entryBuffer(zip,entry)).toString());}
   for(const name of [base+'/main.cjs',base+'/host.cjs',base+'/policy.cjs',base+'/smoke.cjs',base+'/package.json',base+'/crew/server.mjs',base+'/crew/http.mjs',base+'/crew/runtime/platform-source.json',base+'/crew/node_modules/playwright/package.json'])if(!map.has(name))throw Error('Missing release file: '+name);
+  for(const [library,expectedVersion] of Object.entries({'playwright':'1.62.1','playwright-core':'1.62.1','yauzl':'3.4.0','pend':'1.2.0'})){
+   const entry=map.get(base+'/crew/node_modules/'+library+'/package.json');if(!entry||JSON.parse((await entryBuffer(zip,entry)).toString('utf8')).version!==expectedVersion)throw Error('Missing or incorrect packaged runtime library: '+library);
+   if(!map.has(base+'/crew/node_modules/'+library+'/LICENSE'))throw Error('Missing runtime library license: '+library);
+  }
   const readmeName=mac?'README.md':'Folklet/README.md',readmeEntry=map.get(readmeName);if(!readmeEntry)throw Error('Missing desktop start instructions');
   const readme=(await entryBuffer(zip,readmeEntry)).toString('utf8');
   for(const [,link] of readme.matchAll(/\]\(([^)]+)\)/g)){archivePath(link);const target=path.posix.join(path.posix.dirname(readmeName),link);if(!map.has(target))throw Error('Broken desktop guide link: '+link);}
   for(const name of [mac?'Folklet.app/Contents/MacOS/Electron':'Folklet/crew',base+'/crew/runtime/node',base+'/crew/runtime/codex/bin/codex']){const entry=map.get(name);if(!entry||!((entry.externalFileAttributes>>>16)&0o111))throw Error('Missing Unix executable mode: '+name);}
+  if(!mac&&!map.has('Folklet/Setup Linux sandbox.sh'))throw Error('Missing optional Linux sandbox setup.');
   const receipt=JSON.parse((await entryBuffer(zip,map.get(base+'/crew/runtime/platform-source.json'))).toString('utf8'));
   for(const item of validateRuntimeReceipt(receipt,platform)){
    const entry=map.get(base+'/crew/'+item.path);if(!entry||((entry.externalFileAttributes>>>16)&0o777)!==item.mode)throw Error('Runtime mode mismatch: '+item.path);

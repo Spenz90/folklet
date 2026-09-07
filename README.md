@@ -27,7 +27,7 @@ Folklet is free, open source software under the [MIT license](LICENSE). You pay 
 
 Windows needs [WebView2 Evergreen Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) and [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48). Windows 11 is the recommended host. The Windows wrapper targets Windows 10/11 x64; current browser tooling may have narrower OS support. Native ARM Windows and ARM Linux builds are not included. Mac builds are unsigned and not notarized; Windows builds are unsigned. These are previews, not platform-certified installers.
 
-Read the **[Quick start](QUICKSTART.md)** for setup, first tasks and common fixes, then **[Make Folklet more useful](FEATURES.md)** for the features added in 0.6. See **[Connections](PROVIDERS.md)** for accounts and models, or **[Private cloud hosting](HOSTING.md)** to keep Folklet running when your laptop is off.
+Read the **[Quick start](QUICKSTART.md)** for setup, first tasks and common fixes, then **[Make Folklet more useful](FEATURES.md)** for everyday features. See **[Plugins](PLUGINS.md)** for portable Hermes/OpenClaw skills and external tools, **[Connections](PROVIDERS.md)** for accounts and models, or **[Private cloud hosting](HOSTING.md)** to keep Folklet running when your laptop is off.
 
 On desktop, open **My workspace → Models & reasoning**; on the phone, use **Settings → Models & reasoning**. Choose a bot to change its connection, model and reasoning level. Its gear menu and model chip open the same editor. Folklet lists only supported reasoning choices; **Default** follows your connection's configuration. With ChatGPT, choose a named model to customize reasoning. Finish or stop an active task before saving changes. Your visible chat history stays saved.
 
@@ -38,6 +38,7 @@ On desktop, open **My workspace → Models & reasoning**; on the phone, use **Se
 - **Files and context:** uploads, downloads, bot workspaces, memory and shared notes.
 - **Browser work:** separate persistent browser profiles, previews and manual control. A compatible browser must be available on the host.
 - **Skills and reviewed memory:** reusable instruction skills, preference and note revisions, source links, history and undo. Skills must be accepted and enabled for each bot. Bots can recall their own past chats, with shared-channel recall under your control.
+- **Plugins you review:** inspect portable plugin ZIPs and files, import pending skills and disabled MCP connections, then choose tools and bots. Every tool call asks for approval. Native OpenClaw tools require a separate running gateway; native Hermes code is not a drop-in import. Local MCP programs run only after explicit trust and can access the host account's files and network.
 - **More predictable routines:** next-run explanations, missed-run choices, prior-result comparisons, quiet unchanged results and bounded retries before any answer or tool use. Accepted workflow proposals become paused routines.
 - **Connections you approve:** read-only GitHub issues and pull requests, optional paired Telegram updates, and an explicit fallback model order. Fallback never adds tools or replays work that may have started.
 - **Reviewable app drafts:** a separate source copy, visible changes, syntax checks and explicitly approved selected tests before you apply an exact revision. No automatic apply or restart. Run only trusted test code: Node restrictions are not a security sandbox, and network/local services remain reachable.
@@ -47,7 +48,7 @@ On desktop, open **My workspace → Models & reasoning**; on the phone, use **Se
 
 ## What is still a preview
 
-The Windows host and isolated ChatGPT tasks have been checked. Published desktop packages must also pass the native startup gate in [Checks](https://github.com/Spenz90/folklet/actions/workflows/ci.yml); read the matching run's evidence. Automated tests do not replace live checks on each device and provider. Interactive native control, external model APIs, real GitHub/Telegram integrations, a VPS deployment and physical iPhone pairing still need their respective live validation. The release workflow compiles the Mac desktop helper on each Mac architecture. See [release checks](RELEASE-CHECKS.md) for the exact evidence and remaining gates.
+The Windows host and isolated ChatGPT tasks have been checked. Published desktop packages must also pass the native startup gate in [Checks](https://github.com/Spenz90/folklet/actions/workflows/ci.yml); read the matching run's evidence. Automated tests do not replace live checks on each device and provider. Interactive native control, external model APIs, real GitHub/Telegram integrations, upstream plugin services, a VPS deployment and physical iPhone pairing still need their respective live validation. The release workflow compiles the Mac desktop helper on each Mac architecture. See [release checks](RELEASE-CHECKS.md) for the exact evidence and remaining gates.
 
 Closing the Windows/Mac window keeps Folklet running; Linux minimizes it so it remains reachable. Use **Quit Folklet** to stop the host. Keep the host awake for routines and phone access. The cloud kit can run a separate private Folklet under a Linux user service.
 
@@ -81,6 +82,6 @@ Publish the reviewed source archive or a clean checkout. **Do not upload a used 
 
 Folklet is an independent community project inspired by [Grok Bot](https://x.ai/bot), [OpenMausBot](https://github.com/milind-soni/OpenMausBot) and [Luke The Dev's phone companion demonstration](https://x.com/iamlukethedev/status/2095334068808458686). It is not affiliated with xAI, OpenAI, Microsoft, Tailscale or the supported model providers.
 
-The seven ideas reviewed from Hermes Agent and OpenClaw are implemented in the 0.6 source, with deliberate limits described in the [feature roadmap](FEATURE-ROADMAP.md). The separate app-change draft workflow adds a review and application step. This does not imply compatibility with their executable plugins or services.
+The seven ideas reviewed from Hermes Agent and OpenClaw are implemented in the 0.6 source, with deliberate limits described in the [feature roadmap](FEATURE-ROADMAP.md). The separate app-change draft workflow adds a review and application step. Version 0.6.1 adds portable skill/plugin imports and external tool connections; the [compatibility matrix](PLUGINS.md#what-works) explains which parts need their original runtime.
 
 Folklet's code and original assets use the [MIT license](LICENSE). Bundled and optional components have their own [third-party notices](THIRD-PARTY-NOTICES.md). The [business note](BUSINESS.md) describes the free local offering and a possible future managed service without implying that such a service exists today.

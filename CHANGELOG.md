@@ -3,12 +3,17 @@
 ## 0.6.1 — release validation, September 7, 2026
 
 - Rename the app to Folklet, including desktop windows, phone installation and download names. Preserve existing workspaces and connection settings.
+- Add portable plugin ZIP inspection with individual file previews, supported SKILL.md imports and disabled MCP connection definitions. Imported skills remain pending until reviewed and separately enabled for bots. Unsupported native components are listed without execution or dependency installation.
+- Add local stdio and Streamable HTTP MCP tools, plus a separately running OpenClaw gateway adapter with manual tool definitions. Require explicit connection trust, individual bot/tool grants and approval for every call. Native Hermes Python, hooks, channels and providers are not drop-in extensions.
+- Keep tool connections disconnected after restart; recheck MCP tool details before dispatch, cancel pending work when access changes, and avoid automatic replay after uncertain failures. Credentials are session-only unless explicitly remembered in private plaintext files. Local programs retain normal host-account access; recognized package runners require separate consent.
+- Explain compatibility, setup and external-runtime limits in the new [plugin guide](PLUGINS.md).
 - Prevent managed bot browsers from reaching Folklet's owner and phone controls, including popups, subrequests and redirects. Both listeners reject marked browser requests before providing interface or API access.
 - Reject events, approval requests and tool calls from retired tasks on a reused Codex connection.
 - Restrict teammate task-result checks to owned, delegated or explicitly permitted shared-channel work, including after waiting.
 - Preserve the last saved workspace state when a write fails; contain background storage failures and interrupt affected work instead of silently retaining unsaved tasks or settings.
 - Add packaged desktop startup checks and retained platform evidence to release CI. Publisher signing and real-device checks remain release requirements.
 - Preserve verified dependency notices byte for byte in Git checkouts, and use canonical temporary paths for restricted tests on macOS.
+- Add an optional exact-path AppArmor setup for Linux desktop sandbox startup on affected Ubuntu hosts. Keep Electron sandboxing enabled and ordinary source setup free of administrator actions.
 
 This version is being validated for release. See [release checks](RELEASE-CHECKS.md) for actual test and publishing status.
 

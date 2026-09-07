@@ -92,7 +92,7 @@ jobs:
         run: node scripts/Smoke-Desktop.mjs --platform ${{ matrix.platform }} --archive dist/${{ matrix.archive }}
       - name: Launch the extracted Linux desktop under Xvfb
         if: runner.os == 'Linux'
-        run: xvfb-run -a node scripts/Smoke-Desktop.mjs --platform ${{ matrix.platform }} --archive dist/${{ matrix.archive }}
+        run: xvfb-run -a node scripts/Smoke-Desktop.mjs --platform ${{ matrix.platform }} --archive dist/${{ matrix.archive }} --install-linux-profile
       - name: Gate preview artifacts on matching native startup evidence
         run: node scripts/Check-Release.mjs --platform ${{ matrix.platform }} --channel preview
       - name: Retain isolated startup evidence

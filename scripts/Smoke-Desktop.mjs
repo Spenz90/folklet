@@ -9,6 +9,7 @@ import {pipeline} from 'node:stream/promises';
 import yauzl from 'yauzl';
 import {archivePath,safeLink,assertNoLinks,verifyUnixArchive} from './Build-Unix.mjs';
 import {probeHost,shutdownHost} from '../electron/host.cjs';
+import {verifiedLinuxProfile,activateTemporaryLinuxProfile} from './Linux-Sandbox.mjs';
 
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function deadline(promise,ms,message){let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(message)),ms);})]);}finally{clearTimeout(timer);}}
@@ -64,8 +65,9 @@ function launch(file,args,options){
  child.done=new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',(code,signal)=>resolve({code,signal}));});child.done.catch(()=>{});return child;
 }
 async function stopOwned(child){if(!child||child.exitCode!==null||child.signalCode)return;child.kill();await deadline(child.done,3000,'Shutdown timeout').catch(()=>{});if(child.exitCode===null&&!child.signalCode){child.kill('SIGKILL');await deadline(child.done,3000,'Shutdown timeout').catch(()=>{});}}
-export async function smokeDesktop({platform,archive,output}={}){
+export async function smokeDesktop({platform,archive,output,installLinuxProfile=false}={}){
  validateSmokeTarget(platform);archive=path.resolve(archive||'');output=path.resolve(output||'test-results');assertNoLinks(archive);assertNoLinks(output);
+ if(installLinuxProfile&&platform!=='linux-x64')throw Error('AppArmor setup is only available for the isolated Linux check.');
  if(!archive.endsWith('.zip')||!fs.statSync(archive,{throwIfNoEntry:false})?.isFile())throw Error('Choose an existing desktop ZIP.');
  const digest=await sha(archive),checksum=fs.readFileSync(archive+'.sha256','utf8').trim().split(/\s+/)[0];if(digest!==checksum)throw Error('Desktop checksum does not match.');
  if(platform!=='win32-x64')await verifyUnixArchive(archive,platform);
@@ -74,7 +76,7 @@ export async function smokeDesktop({platform,archive,output}={}){
  // Start from its canonical parent so the isolated root itself has no links.
  fs.mkdirSync(output,{recursive:true});const tempRoot=fs.realpathSync(os.tmpdir()),root=fs.mkdtempSync(path.join(tempRoot,'crew-desktop-smoke-')),extracted=path.join(root,'extracted'),isolated=path.join(root,'isolated');fs.mkdirSync(extracted);fs.mkdirSync(isolated);
  const report=path.join(isolated,'desktop.json'),resultPath=path.join(output,platform+'-smoke.json'),screenshot=path.join(output,platform+'-smoke.png');assertNoLinks(resultPath);assertNoLinks(screenshot);
- let host,desktop,identity,passed=false,phase='extract';
+ let host,desktop,identity,passed=false,phase='extract',removeLinuxProfile,profileCleanupError;
  try{
   await extractArchive(archive,extracted);
   const appRoot=path.join(extracted,...(platform==='win32-x64'?['Folklet']:platform.startsWith('darwin')?['Folklet.app','Contents','Resources','app','crew']:['Folklet','resources','app','crew']));
@@ -85,6 +87,7 @@ export async function smokeDesktop({platform,archive,output}={}){
   while(Date.now()<startupDeadline){const current=await probeHost();if(current.state==='ready'){if(current.pid!==host.pid)throw Error('Smoke host identity mismatch.');identity={...current,port:4318};break;}if(host.exitCode!==null||host.signalCode)throw Error('Packaged host stopped before startup.');await pause(200);}
   if(!identity)throw Error('Packaged host did not start.');
   const executable=path.join(extracted,...(platform==='win32-x64'?['Folklet','desktop','Crew.exe']:platform.startsWith('darwin')?['Folklet.app','Contents','MacOS','Electron']:['Folklet','crew']));
+  if(installLinuxProfile){phase='sandbox-profile';removeLinuxProfile=activateTemporaryLinuxProfile(await verifiedLinuxProfile(executable));}
   phase='desktop-start';desktop=launch(executable,['--smoke-test',report],{cwd:path.dirname(executable),env:{...env,CREW_SMOKE_ROOT:isolated,CREW_SMOKE_HOST_PID:String(host.pid)}});
   const ended=await deadline(desktop.done,45000,'Packaged desktop smoke timed out.');
   if(ended.code!==0||!fs.existsSync(report))throw Error('Packaged desktop did not complete smoke.');
@@ -98,13 +101,15 @@ export async function smokeDesktop({platform,archive,output}={}){
   passed=true;const evidence={schemaVersion:1,passed:true,platform,version,archive:path.basename(archive),archiveSha256:digest,checkedAt:new Date().toISOString(),hostStarted:true,workspaceRendered:true,isolatedData:true,ownedProcessesClosed:true,modelAccountUsed:false,nativeInputUsed:false,signing};fs.writeFileSync(resultPath,JSON.stringify(evidence,null,2)+'\n');return evidence;
  }finally{
   await stopOwned(desktop);if(identity&&host?.exitCode===null)await shutdownHost(identity).catch(()=>{});await stopOwned(host);
+  if(removeLinuxProfile)try{removeLinuxProfile();}catch(error){passed=false;profileCleanupError=error;phase='sandbox-profile-cleanup';}
   if(!passed){
    const failure={schemaVersion:1,passed:false,platform,archive:path.basename(archive),archiveSha256:digest,error:'Isolated packaged desktop smoke failed.',phase,desktopExitCode:desktop?.exitCode??null,desktopSignal:desktop?.signalCode??null,hostExitCode:host?.exitCode??null,desktopStderr:safeSmokeDiagnostic(desktop?.stderrText,root),hostStderr:safeSmokeDiagnostic(host?.stderrText,root)};
    fs.writeFileSync(resultPath,JSON.stringify(failure,null,2)+'\n');console.error(JSON.stringify(failure));
   }
   if(path.dirname(root)===tempRoot&&path.basename(root).startsWith('crew-desktop-smoke-'))fs.rmSync(root,{recursive:true,force:true,maxRetries:3,retryDelay:300});
+  if(profileCleanupError)throw profileCleanupError;
  }
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
- const options={},args=process.argv.slice(2);for(let i=0;i<args.length;i++){const key={'--platform':'platform','--archive':'archive','--output':'output'}[args[i]];if(!key||!args[i+1])throw Error('Use --platform <target> --archive <ZIP> [--output <folder>].');options[key]=args[++i];}console.log(JSON.stringify(await smokeDesktop(options)));
+ const options={},args=process.argv.slice(2);for(let i=0;i<args.length;i++){if(args[i]==='--install-linux-profile'){options.installLinuxProfile=true;continue;}const key={'--platform':'platform','--archive':'archive','--output':'output'}[args[i]];if(!key||!args[i+1])throw Error('Use --platform <target> --archive <ZIP> [--output <folder>] [--install-linux-profile].');options[key]=args[++i];}console.log(JSON.stringify(await smokeDesktop(options)));
 }

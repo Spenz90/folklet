@@ -195,6 +195,17 @@ test('proxy preserves authenticated JSON upload bodies and binary file downloads
  assert.equal(f.requests[1].url,route);assert.equal(download.headers['cache-control'],'no-store');
 });
 
+test('paired phones cannot manage any plugin route but can answer a normal scoped approval',async t=>{
+ const f=await fixture(t),p=await f.pair();
+ const routes=['plugins','plugin-packages','plugin-save','plugin-connect','plugin-remove','plugin-inspect','plugin-file','plugin-install','plugin-package-remove','x/../plugin-file','plugin-future-operation'];
+ for(const route of routes)for(const method of ['GET','POST']){
+  const response=await f.request('/api/'+route,{method,headers:{...p.headers,Origin:origin},...(method==='POST'?{body:{id:'fixture-package',path:'SKILL.md'}}:{})});assert.equal(response.status,403,method+' '+route);assert.ok(!response.text.includes(backendToken));
+ }
+ assert.equal(f.requests.length,0,'Plugin management must never reach the owner host');
+ const body={id:'fixture-bot',requestId:'fixture-approval',answer:'accept'},answer=await f.request('/api/answer',{method:'POST',headers:{...p.headers,Origin:origin},body});
+ assert.equal(answer.status,200);assert.equal(f.requests.length,1);assert.equal(f.requests[0].url,'/api/answer');assert.equal(f.requests[0].headers['x-crew-token'],backendToken);assert.deepEqual(JSON.parse(f.requests[0].body),body);
+});
+
 test('revocation immediately removes API and app access without affecting a second device',async t=>{
  const f=await fixture(t),first=await f.pair('First'),second=await f.pair('Second');
  f.gateway.revoke(f.gateway.status().devices.find(d=>d.name==='First').id);

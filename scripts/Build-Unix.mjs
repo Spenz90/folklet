@@ -7,7 +7,7 @@ import {pipeline} from 'node:stream/promises';
 import {Readable} from 'node:stream';
 import yauzl from 'yauzl';
 import yazl from 'yazl';
-import {collectReleaseFiles,validateRelativeFile} from './release-files.mjs';
+import {collectReleaseFiles,validateRelativeFile,runtimeLibraries,runtimeNoticeFiles,checkRuntimeLibraries} from './release-files.mjs';
 import {platformManifest} from './Install-Platform.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -125,7 +125,7 @@ export async function buildUnix({platform,runtimeRoot,nativeHelper,cache=path.jo
   }
   for(const relative of sourceWithoutRuntimeDuplicates(source,runtimeFiles))zip.addFile(path.join(root,relative),appBase+'/'+relative,{mode:relative.endsWith('.sh')?0o100755:0o100644});
   for(const name of ['package.json','main.cjs','policy.cjs','host.cjs','smoke.cjs'])zip.addFile(path.join(root,'electron',name),base+'/'+name,{mode:0o100644});
-  const runtimeLibraries={'playwright':'1.62.1','playwright-core':'1.62.1','yauzl':'3.4.0','pend':'1.2.0'},lock=JSON.parse(fs.readFileSync(path.join(root,'package-lock.json')));
+  checkRuntimeLibraries(root);const lock=JSON.parse(fs.readFileSync(path.join(root,'package-lock.json')));
   for(const [library,expectedVersion] of Object.entries(runtimeLibraries)){
    const pkg=JSON.parse(fs.readFileSync(path.join(root,'node_modules',library,'package.json')));if(pkg.version!==expectedVersion||lock.packages['node_modules/'+library]?.version!==expectedVersion)throw Error('Unexpected runtime library: '+library);addTree(zip,path.join(root,'node_modules',library),appBase+'/node_modules/'+library);
   }
@@ -151,9 +151,9 @@ export async function verifyUnixArchive(file,platform){
   const mac=platform.startsWith('darwin-'),base=mac?'Folklet.app/Contents/Resources/app':'Folklet/resources/app';
   for(const entry of list){archivePath(entry.fileName);if(/(^|\/)(data|profile|browser-profiles|\.env|auth\.json)(\/|$)/i.test(entry.fileName))throw Error('Private data in desktop archive');if(((entry.externalFileAttributes>>>16)&0o170000)===0o120000)safeLink(entry.fileName,(await entryBuffer(zip,entry)).toString());}
   for(const name of [base+'/main.cjs',base+'/host.cjs',base+'/policy.cjs',base+'/smoke.cjs',base+'/package.json',base+'/crew/server.mjs',base+'/crew/http.mjs',base+'/crew/runtime/platform-source.json',base+'/crew/node_modules/playwright/package.json'])if(!map.has(name))throw Error('Missing release file: '+name);
-  for(const [library,expectedVersion] of Object.entries({'playwright':'1.62.1','playwright-core':'1.62.1','yauzl':'3.4.0','pend':'1.2.0'})){
+  for(const [library,expectedVersion] of Object.entries(runtimeLibraries)){
    const entry=map.get(base+'/crew/node_modules/'+library+'/package.json');if(!entry||JSON.parse((await entryBuffer(zip,entry)).toString('utf8')).version!==expectedVersion)throw Error('Missing or incorrect packaged runtime library: '+library);
-   if(!map.has(base+'/crew/node_modules/'+library+'/LICENSE'))throw Error('Missing runtime library license: '+library);
+   for(const notice of runtimeNoticeFiles(library))if(!map.has(base+'/crew/'+notice))throw Error('Missing runtime library license: '+library);
   }
   const readmeName=mac?'README.md':'Folklet/README.md',readmeEntry=map.get(readmeName);if(!readmeEntry)throw Error('Missing desktop start instructions');
   const readme=(await entryBuffer(zip,readmeEntry)).toString('utf8');

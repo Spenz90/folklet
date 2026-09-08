@@ -1,0 +1,7 @@
+export class SyncClient{
+ constructor(){this.cursor='';this.state=null;this.older=new Map();this.historyCursors=new Map();}
+ apply(reply){if(reply.full){if(this.state?.workspaceId!==reply.state.workspaceId){this.older.clear();this.historyCursors.clear();}this.state=reply.state;}else if(!reply.unchanged){if(!this.state)throw Error('A full workspace snapshot is required.');const bots=new Map(this.state.bots.map(b=>[b.id,b]));for(const id of reply.removed||[]){bots.delete(id);this.older.delete(id);}for(const bot of reply.bots||[])bots.set(bot.id,bot);this.state={...this.state,...reply.changes,bots:[...bots.values()]};}this.cursor=reply.cursor;return this.value();}
+ value(){return {...this.state,bots:this.state.bots.map(bot=>{const recent=new Set(bot.messages.map(m=>m.id));return {...bot,messages:[...(this.older.get(bot.id)||[]).filter(m=>!recent.has(m.id)),...bot.messages]};})};}
+ before(id){return this.historyCursors.get(id)||this.state.bots.find(b=>b.id===id)?.messages[0]?.id||'';}
+ addHistory(page){const recent=this.state.bots.find(b=>b.id===page.id)?.messages||[],existing=this.older.get(page.id)||[],seen=new Set([...recent,...existing].map(m=>m.id));this.older.set(page.id,[...page.messages.filter(m=>!seen.has(m.id)),...existing].sort((a,b)=>(a.at||0)-(b.at||0)));if(!page.sourcePage&&page.messages.length)this.historyCursors.set(page.id,page.messages[0].id);return this.value();}
+}

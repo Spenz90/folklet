@@ -1,3 +1,10 @@
+import {CredentialVault} from './credential-vault.mjs';
+import {Backups,inspectBackup} from './backups.mjs';
+import {StateSync,historyPage} from './state-sync.mjs';
+import {Usage} from './usage.mjs';
+import {PushNotifications} from './push-notifications.mjs';
+import {pluginCatalog,catalogRecipe,catalogSkill} from './plugin-catalog.mjs';
+import {checkUpdates} from './updates.mjs';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -27,12 +34,14 @@ import {routineSummary} from './routine-policy.mjs';
 import {AppChanges} from './app-changes.mjs';
 import {PluginConnections} from './plugin-connections.mjs';
 import {PluginPackages} from './plugin-packages.mjs';
+import {createHostMonitor,workspaceHostStatus} from './host-status.mjs';
 const root=path.dirname(fileURLToPath(import.meta.url));
 const store=new Store(process.env.CREW_DATA||path.join(root,'data'));
 const computers=new Computers(store.root,(b,e)=>store.event(b,e));
-const providers=new ProviderStore(store.root),learning=new Learning({dataRoot:store.root,store}),nativeComputer=new NativeComputer();
-const skills=new Skills({dataRoot:store.root,store}),recall=new Recall({store}),integrations=new IntegrationStore({dataRoot:store.root,store}),notifications=new TelegramNotifications({dataRoot:store.root});
-const plugins=new PluginConnections({dataRoot:store.root,store}),pluginPackages=new PluginPackages({dataRoot:store.root,skills,connections:plugins});
+const vault=new CredentialVault(store.root);vault.unlockFromService();
+const providers=new ProviderStore(store.root,{vault}),learning=new Learning({dataRoot:store.root,store}),nativeComputer=new NativeComputer();
+const skills=new Skills({dataRoot:store.root,store}),recall=new Recall({store}),integrations=new IntegrationStore({dataRoot:store.root,store,vault}),notifications=new TelegramNotifications({dataRoot:store.root,vault});
+const plugins=new PluginConnections({dataRoot:store.root,store,vault}),pluginPackages=new PluginPackages({dataRoot:store.root,skills,connections:plugins});
 const engine=new Engine(store,computers,{providers}),token=randomBytes(32).toString('hex');
 const appChanges=new AppChanges({appRoot:root,dataRoot:store.root,store,learning});
 engine.learning=learning;engine.nativeComputer=nativeComputer;
@@ -41,7 +50,14 @@ engine.appChanges=appChanges;
 const account=new AccountConnection({executable:resolveCrewEngine()});
 const modelSettings=new ModelSettings({account,providers});
 const phoneSetup=new PhoneSetupRunner();
+const hostMonitor=createHostMonitor({dataRoot:store.root});
 let mobile;
+const sync=new StateSync(),usage=new Usage({dataRoot:store.root});engine.usage=usage;
+const backups=new Backups({dataRoot:store.root,vault,isIdle:()=>!store.db.tasks.some(t=>['queued','running','waiting'].includes(t.status))});backups.start();
+const push=new PushNotifications({dataRoot:store.root,vault,isDeviceActive:id=>mobile?.status().devices.some(d=>d.id===id)===true});engine.push=push;
+const state=()=>({version:3,workspaceId:store.db.workspaceId,bots:store.db.bots.filter(b=>!b.archived).map(view),tasks:store.db.tasks.slice(-300),routines:store.db.routines.map(r=>({...r,policySummary:routineSummary(r)})),routineCalendar:calendarDays(store.db.routines),channels:store.db.channels,notifications:store.db.notifications});
+function migrateCredentials(){providers.persist();integrations.persist(integrations.items);plugins.persist(plugins.items);notifications.protect();}
+
 const view=b=>({...b,...engine.status(b),modelPreference:b.model||'',computer:computers.summary(b.id),files:store.files(b)});
 function json(res,status,value){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(value));}
 function textFile(p){return fs.existsSync(p)?fs.readFileSync(p,'utf8'):'';}
@@ -56,11 +72,20 @@ const server=http.createServer(async(req,res)=>{try{
  }
  if(req.method==='GET'&&url.pathname==='/health')return json(res,200,{app:'Crew',version:5,pid:process.pid});
  if(req.method==='GET'&&url.pathname==='/'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'"});return res.end(fs.readFileSync(path.join(root,'index.html'),'utf8').replace('__TOKEN__',token));}
- if(req.method==='GET'&&['/app.js','/markdown.mjs','/settings-ui.mjs','/model-settings-ui.mjs','/review-ui-common.mjs','/skills-ui.mjs','/learning-review-ui.mjs','/recall-ui.mjs','/integrations-ui.mjs','/notifications-ui.mjs','/routine-policy-ui.mjs','/fallback-ui.mjs','/app-changes-ui.mjs','/plugins-ui.mjs','/style.css'].includes(url.pathname)){res.writeHead(200,{'Content-Type':!url.pathname.endsWith('.css')?'text/javascript':'text/css','Cache-Control':'no-store'});return res.end(fs.readFileSync(path.join(root,url.pathname.slice(1))));}
+ if(req.method==='GET'&&['/app.js','/connection-state.mjs','/hosting-ui.mjs','/draft-storage.mjs','/sync-client.mjs','/reliability-ui.mjs','/markdown.mjs','/settings-ui.mjs','/model-settings-ui.mjs','/review-ui-common.mjs','/skills-ui.mjs','/learning-review-ui.mjs','/recall-ui.mjs','/integrations-ui.mjs','/notifications-ui.mjs','/routine-policy-ui.mjs','/fallback-ui.mjs','/app-changes-ui.mjs','/plugins-ui.mjs','/style.css'].includes(url.pathname)){res.writeHead(200,{'Content-Type':!url.pathname.endsWith('.css')?'text/javascript':'text/css','Cache-Control':'no-store'});return res.end(fs.readFileSync(path.join(root,url.pathname.slice(1))));}
  const pwaAssets={'/manifest.webmanifest':'application/manifest+json','/service-worker.js':'text/javascript','/pwa.js':'text/javascript','/offline.html':'text/html; charset=utf-8','/icons/crew-192.png':'image/png','/icons/crew-512.png':'image/png','/icons/crew-maskable-512.png':'image/png','/icons/apple-touch-icon.png':'image/png','/icons/crew.ico':'image/x-icon'};
  if(req.method==='GET'&&pwaAssets[url.pathname]){res.writeHead(200,{'Content-Type':pwaAssets[url.pathname],'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});return res.end(fs.readFileSync(path.join(root,url.pathname.slice(1))));}
- if(req.headers['x-crew-token']!==token)return json(res,403,{error:'Connection expired. Refresh the app.'});
+ if(req.headers['x-crew-token']!==token)return json(res,403,{error:'Connection expired. Refresh the app.',code:'CONNECTION_EXPIRED'});
  if(req.method==='GET'){
+  if(url.pathname==='/api/vault-status')return json(res,200,vault.status());
+  if(url.pathname==='/api/backup-status')return json(res,200,backups.status());
+  if(url.pathname==='/api/backup-download')return sendDownload(res,backups.download(url.searchParams.get('id')));
+  if(url.pathname==='/api/usage-status')return json(res,200,usage.status());
+  if(url.pathname==='/api/push-status')return json(res,200,push.status(req.headers['x-crew-device']));
+  if(url.pathname==='/api/plugin-catalog')return json(res,200,pluginCatalog);
+  if(url.pathname==='/api/state-delta')return json(res,200,sync.update(state(),url.searchParams.get('cursor')));
+  if(url.pathname==='/api/history')return json(res,200,historyPage(store.bot(url.searchParams.get('id')),url.searchParams.get('before'),url.searchParams.get('message'),url.searchParams.get('task')));
+  if(url.pathname==='/api/host-status')return json(res,200,workspaceHostStatus(await hostMonitor(),{...store.db,providers:providers.list(),phone:mobile?.status(),plugins:plugins.list(),integrations:integrations.list(),notifications:notifications.status(),vault:vault.status(),backups:backups.status(),push:push.status()}));
   if(url.pathname==='/api/model-settings')return json(res,200,await modelSettings.get(url.searchParams.get('providerId')||'codex',url.searchParams.get('model')||''));
   if(url.pathname==='/api/providers')return json(res,200,providers.list());
   if(url.pathname==='/api/provider-models')return json(res,200,await providers.modelList(url.searchParams.get('id')));
@@ -83,10 +108,10 @@ const server=http.createServer(async(req,res)=>{try{
   if(url.pathname==='/api/routine-policy')return json(res,200,store.routinePolicy(url.searchParams.get('routineId')));
   if(url.pathname==='/api/fallback-settings'){const bot=store.bot(url.searchParams.get('id'));return json(res,200,{id:bot.id,fallback:normalizeFallback(bot.fallback),providers:providers.list()});}
   if(url.pathname==='/api/native-status')return json(res,200,nativeComputer.status());
-  if(url.pathname==='/api/guide'){const name=url.searchParams.get('name'),titles={'QUICKSTART.md':'Quick start','HOSTING.md':'Cloud hosting','PROVIDERS.md':'Models & connections','PLUGINS.md':'Plugins & portable bundles','FEATURES.md':'Skills, learning & connections','SECURITY.md':'Security & privacy','RELEASE-CHECKS.md':'Release checks','FEATURE-ROADMAP.md':'Feature roadmap'};if(!titles[name])throw Error('Guide not found');return json(res,200,{title:titles[name],text:fs.readFileSync(path.join(root,name),'utf8')});}
+  if(url.pathname==='/api/guide'){const name=url.searchParams.get('name'),titles={'QUICKSTART.md':'Quick start','HOSTING.md':'Cloud hosting','PROVIDERS.md':'Models & connections','PLUGINS.md':'Plugins & portable bundles','RECOVERY.md':'Backup, restore & credential protection','FEATURES.md':'Skills, learning & connections','SECURITY.md':'Security & privacy','RELEASE-CHECKS.md':'Release checks','FEATURE-ROADMAP.md':'Feature roadmap'};if(!titles[name])throw Error('Guide not found');return json(res,200,{title:titles[name],text:fs.readFileSync(path.join(root,name),'utf8')});}
   if(url.pathname==='/api/account-status')return json(res,200,await account.status());
   if(url.pathname==='/api/mobile-status')return json(res,200,{...mobile.status(),platform:process.platform,setup:phoneSetup.state});
-  if(url.pathname==='/api/state')return json(res,200,{version:3,bots:store.db.bots.filter(b=>!b.archived).map(view),tasks:store.db.tasks.slice(-300),routines:store.db.routines.map(r=>({...r,policySummary:routineSummary(r)})),routineCalendar:calendarDays(store.db.routines),channels:store.db.channels,notifications:store.db.notifications});
+  if(url.pathname==='/api/state')return json(res,200,state());
   const b=store.bot(url.searchParams.get('id'));
   if(url.pathname==='/api/models'){if(b.providerId&&b.providerId!=='codex')return json(res,200,{data:(await providers.modelList(b.providerId)).map(m=>({...m,displayName:m.name}))});const l=await engine.connect(b);const r=await engine.rpc(l,'model/list',{includeHidden:false,limit:100});return json(res,200,r);}
   if(url.pathname==='/api/preview'){const rel=url.searchParams.get('path'),file=store.safeFile(b,rel);const st=fs.statSync(file);if(!st.isFile())throw Error('Not a file');if(st.size>250000)throw Error('This file is too large to preview. Download it instead.');const ext=path.extname(file).toLowerCase();if(!['.md','.txt','.json','.csv','.tsv','.js','.mjs','.ts','.css','.html','.py','.yaml','.yml','.log'].includes(ext))throw Error('Preview is unavailable for this file type. Download it instead.');return json(res,200,{name:rel,text:fs.readFileSync(file,'utf8'),markdown:ext==='.md'});}
@@ -97,8 +122,21 @@ const server=http.createServer(async(req,res)=>{try{
   return json(res,404,{error:'Not found'});
  }
  if(req.method!=='POST')return json(res,404,{error:'Not found'});
- const a=await readJSON(req);
+ const a=await readJSON(req,{maxBytes:['/api/backup-inspect','/api/backup-restore'].includes(url.pathname)?180*1024*1024:15000000});
  const route=url.pathname.slice(5);
+ if(route==='vault-configure'){vault.configure(a);migrateCredentials();return json(res,200,vault.status());}
+ if(route==='vault-unlock'){vault.unlock(a.password);migrateCredentials();return json(res,200,vault.status());}
+ if(route==='backup-create')return json(res,200,backups.create(a.password));
+ if(route==='backup-configure')return json(res,200,backups.configure(a));
+ if(route==='backup-inspect')return json(res,200,inspectBackup(Buffer.from(String(a.base64||''),'base64'),a.password).summary);
+ if(route==='backup-restore')return json(res,200,backups.restore(Buffer.from(String(a.base64||''),'base64'),a.password));
+ if(route==='usage-configure')return json(res,200,usage.configure(a));
+ if(route==='push-configure')return json(res,200,push.configure(a));
+ if(route==='push-subscribe')return json(res,200,push.subscribe(req.headers['x-crew-device'],a.subscription));
+ if(route==='push-unsubscribe')return json(res,200,push.unsubscribe(req.headers['x-crew-device']));
+ if(route==='catalog-prepare')return json(res,200,plugins.save(catalogRecipe(a.id,a)));
+ if(route==='catalog-skill')return json(res,200,skills.importSkill(catalogSkill(a.id)));
+ if(route==='update-check')return json(res,200,await checkUpdates({current:JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).version,includePreviews:a.includePreviews===true}));
  if(route==='plugin-save')return json(res,200,plugins.save(a));
  if(route==='plugin-connect')return json(res,200,await plugins.connect(a));
  if(route==='plugin-remove')return json(res,200,await plugins.remove(a.id));
@@ -200,4 +238,4 @@ const server=http.createServer(async(req,res)=>{try{
  json(res,200,{ok:true});
 }catch(e){if(!res.headersSent)json(res,400,{error:e.message});else res.end();}});
 server.listen(Number(process.env.CREW_PORT||4318),'127.0.0.1',async()=>{computers.protectControlOrigin(`http://127.0.0.1:${server.address().port}`);plugins.protectControlOrigin(`http://127.0.0.1:${server.address().port}`);console.log(`FOLKLET is running at http://127.0.0.1:${server.address().port}`);mobile=new MobileAccess({dataRoot:store.root,appRoot:root,localPort:server.address().port,localToken:token,port:Number(process.env.CREW_MOBILE_PORT||4320),protectOrigin:origin=>{computers.protectControlOrigin(origin);plugins.protectControlOrigin(origin);}});try{await mobile.start();}catch(e){mobile.lastError=e.message;console.error('Phone access:',e.message);}});
-async function close(){appChanges.close();phoneSetup.close();nativeComputer.setEnabled(false);await mobile?.close();await account.close();await engine.close();await nativeComputer.close();providers.close();integrations.close();await plugins.close();await notifications.close();server.close();process.exit();}process.on('SIGINT',close);process.on('SIGTERM',close);
+async function close(){backups.close();push.close();appChanges.close();phoneSetup.close();nativeComputer.setEnabled(false);await mobile?.close();await account.close();await engine.close();await nativeComputer.close();providers.close();integrations.close();await plugins.close();await notifications.close();vault.close();server.close();process.exit();}process.on('SIGINT',close);process.on('SIGTERM',close);

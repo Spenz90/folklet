@@ -1,0 +1,5 @@
+import fs from 'node:fs';import path from 'node:path';
+import {restoreBackup,inspectBackup} from '../backups.mjs';
+// Passwords are read from stdin, never arguments. Run from a private terminal.
+const [action,file,destination]=process.argv.slice(2);
+try{if(!['inspect','restore'].includes(action)||!file||action==='restore'&&!destination)throw Error('Usage: node hosting/restore-backup.mjs inspect BACKUP | restore BACKUP NEW_FOLDER. Supply the backup password on stdin.');let password='';for await(const chunk of process.stdin){password+=chunk;if(password.length>2048)throw Error('Password input is too long.');}password=password.replace(/\r?\n$/,'');const resolved=path.resolve(file),stat=fs.lstatSync(resolved);if(!stat.isFile()||stat.isSymbolicLink()||stat.nlink!==1||stat.size>128*1024*1024)throw Error('Choose a regular encrypted backup file under 128 MB.');const bytes=fs.readFileSync(resolved);const result=action==='inspect'?inspectBackup(bytes,password).summary:restoreBackup(bytes,password,path.resolve(destination));console.log(JSON.stringify(result,null,2));}catch(error){console.error(error.message);process.exitCode=1;}

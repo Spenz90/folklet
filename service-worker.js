@@ -46,6 +46,9 @@ async function offline(){
   });
 }
 
+self.addEventListener('push',event=>{event.waitUntil((async()=>{let value;try{value=event.data.json();}catch{return;}const allowed=['A task is complete. Open Folklet to see the result.','A task needs attention. Open Folklet to review it.','Your approval or answer is needed. Open Folklet to review it.'];if(value.title!=='Folklet'||!allowed.includes(value.body))return;await self.registration.showNotification('Folklet',{body:value.body,icon:'/icons/crew-192.png',badge:'/icons/crew-192.png',tag:'folklet-work',data:{url:'/'}});})());});
+self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil((async()=>{const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});for(const client of windows)if(new URL(client.url).origin===self.location.origin)return client.focus();return self.clients.openWindow('/');})());});
+
 self.addEventListener('fetch',event=>{
   const request=event.request,url=new URL(request.url);
   if(request.method!=='GET'||url.origin!==self.location.origin)return;

@@ -6,7 +6,17 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import yauzl from 'yauzl';
-import {sourceFiles, collectReleaseFiles, validateRelativeFile, checkSourceText} from './scripts/release-files.mjs';
+import {sourceFiles, collectReleaseFiles, validateRelativeFile, checkSourceText, runtimeLibraries, runtimeNoticeFiles, checkRuntimeLibraries} from './scripts/release-files.mjs';
+
+test('desktop packages cover every locked production dependency and retain its license notice',t=>{
+ const base=fs.realpathSync(os.tmpdir()),root=fs.mkdtempSync(path.join(base,'folklet-runtime-deps-')),source=fileURLToPath(new URL('.',import.meta.url));
+ t.after(()=>{assert.equal(path.dirname(root),base);assert.match(path.basename(root),/^folklet-runtime-deps-/);fs.rmSync(root,{recursive:true,force:true});});
+ const files=['package-lock.json',...Object.keys(runtimeLibraries).flatMap(name=>['node_modules/'+name+'/package.json',...runtimeNoticeFiles(name)])];
+ for(const name of new Set(files)){fs.mkdirSync(path.dirname(path.join(root,name)),{recursive:true});fs.copyFileSync(path.join(source,name),path.join(root,name));}
+ assert.equal(checkRuntimeLibraries(root),21);
+ const notice=path.join(root,'node_modules/buffer-equal-constant-time/LICENSE.txt');fs.unlinkSync(notice);assert.throws(()=>checkRuntimeLibraries(root),/ENOENT/);fs.copyFileSync(path.join(source,'node_modules/buffer-equal-constant-time/LICENSE.txt'),notice);
+ const lockFile=path.join(root,'package-lock.json'),lock=JSON.parse(fs.readFileSync(lockFile));lock.packages['node_modules/unreviewed-fixture']={version:'1.0.0'};fs.writeFileSync(lockFile,JSON.stringify(lock));assert.throws(()=>checkRuntimeLibraries(root),/Production dependency set differs/);
+});
 
 test('release paths refuse private data and traversal', () => {
   for (const name of ['data/crew.json','desktop/profile/Cookies','browser-profiles/Default','auth.json','secrets/.env','key.pem','../server.mjs','/server.mjs','desktop\\profile\\Cookies','C:/secret']) {

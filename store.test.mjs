@@ -66,7 +66,8 @@ test('a database copied without its workspaces fails without recreating or chang
 test('new installations start empty and explicit custom workspace paths are preserved',t=>{
  const s=make();
  t.after(()=>{const dir=path.resolve(s.root);assert.equal(path.dirname(dir),path.resolve(os.tmpdir()));assert.match(path.basename(dir),/^crew-test-/);fs.rmSync(dir,{recursive:true,force:true});});
- assert.deepEqual(s.db,{bots:[],tasks:[],routines:[],channels:[],notifications:[]});
+ const {workspaceId,...content}=s.db;assert.match(workspaceId,/^[a-f\d-]{36}$/);assert.equal(new Store(s.root).db.workspaceId,workspaceId);
+ assert.deepEqual(content,{bots:[],tasks:[],routines:[],channels:[],notifications:[]});
  const b=s.create({name:'Test'});b.cwd=path.join(s.root,'custom-project');fs.mkdirSync(b.cwd);s.save();
  assert.equal(new Store(s.root).bot(b.id).cwd,b.cwd);
 });

@@ -1,5 +1,24 @@
 # Release checks — 0.6.1 validation
 
+## September 8 reliability upgrade — development source
+
+The seven reliability additions are implemented in source after 0.6.1. They are not in the existing release downloads. This pass prepares a future private server; no VPS was purchased or deployed.
+
+- **530 automated checks passed on Windows**, with one Linux-only AppArmor check skipped and no failures. The suite includes real isolated HTTP flows for encrypted backup inspection/restore, request limits before provider dispatch, delta/history routes, generic push subscription identity and owner-only administration. Provider calls use a local fixture.
+- Password-vault encryption, field authentication, damaged backup rejection, new restore identity, paused work, protected credential migration, draft expiry, history pagination, usage totals after pruning, scheduled-backup backoff and publisher command planning have regression coverage. **Windows current-user DPAPI round-tripped using the native helper under a loaded user profile.** Mac Keychain and Linux Secret Service need real machine checks.
+- An isolated browser workspace verified backup creation, upload, inspection and separate restore through the UI. The **390 × 844** layout verified draft recovery after reload, older history through the first message, preserved scrolling, usage setting save and a starter skill imported as pending with zero enabled bots. These checks used sample data; they are not physical iPhone or APNs delivery tests.
+- The pinned **official MCP filesystem server 2026.8.31** ran on Windows in a separate sample folder: tool discovery, reading a sample file and refusal outside the allowed folder passed. The package is not bundled by the starter catalog. The Hermes/OpenClaw instruction starters are Folklet-authored examples, not native-runtime certification.
+- Locked package provenance and notices passed for **24 npm packages**. The dependency installation reported zero known advisory vulnerabilities. The positive source export contains **201 files**; all **79 relative links**, including **12 heading links**, passed across **19 public guides**. Exports exclude private workspace data, credentials, test fixtures and downloaded dependencies.
+- The first platform run caught an omitted desktop dependency and a Mac test path alias. Packaging now shares a reviewed list of all **21 production npm packages** across Windows and Unix and rejects lockfile additions missing from that list. Dependency notice checks cover nonstandard license filenames and the separately retained http_ece license. The web-push notice correctly records MPL-2.0 and its unmodified source stays in the desktop packages.
+
+Check the GitHub workflow for this upgrade's exact commit before using its build artifacts. Publisher signing/notarization, physical iPhone push and network switching, real provider-account checks and an actual server reboot remain the separate checks in [Before the next public release](REAL-WORLD-CHECKS.md). The existing unsigned 0.6.1 preview remains available.
+
+## Unreleased mobile and hosting upgrade
+
+The development source adds read-only host checks, guided private-server setup and phone reconnection. A Windows run of the full suite passed **501 tests**, with one Linux-only check skipped and no failures. The host checks cover service process ownership, missing/disabled lingering, desktop limitations, low capacity, temporary API-key warnings and omission of private report fields. The paired-gateway integration verifies that host status requires authentication and does not expose host tokens, device secrets or data paths.
+
+A real Chromium-based browser with isolated sample data checked a 390 × 844 phone viewport and a 1366 × 900 desktop viewport. The host and setup views rendered without horizontal overflow. A network interruption and an actual isolated host restart both retained the open-page draft, with zero task submissions or automatic resubmits and no page errors. This is browser testing, not a physical iPhone or VPS deployment. A source change is not a new packaged release; the existing 0.6.1 downloads remain the dated release below.
+
 ## September 7 hardening pass
 
 The 0.6.1 source is undergoing release validation. A source upload or a successful automated test is not a signed production release. The 0.6.0 evidence below is a dated baseline, not evidence for every changed 0.6.1 path.

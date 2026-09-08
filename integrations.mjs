@@ -1,3 +1,4 @@
+import {isSealed,protectSecret,revealSecret,secretStorage} from './credential-vault.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
@@ -41,22 +42,22 @@ function definition(input){
  const repo=repoName(input.repo);return {id,type:'github',name:valueText(input.name||repo.slice(0,100),100,'integration name'),repo,botIds:[...new Set(input.botIds)],enabled:input.enabled!==false};
 }
 export class IntegrationStore{
- constructor({dataRoot,store,fetchImpl=fetch}={}){
-  this.file=path.join(dataRoot,'integrations.json');this.store=store;this.fetchImpl=fetchImpl;this.sessionTokens=new Map();this.active=new Map();this.closed=false;
+ constructor({dataRoot,store,fetchImpl=fetch,vault}={}){
+  this.vault=vault;this.file=path.join(dataRoot,'integrations.json');this.store=store;this.fetchImpl=fetchImpl;this.sessionTokens=new Map();this.active=new Map();this.closed=false;
   const state=readPrivateJson(this.file,{version:1,integrations:[]});if(state.version!==1||!Array.isArray(state.integrations)||state.integrations.length>50)throw Error('Integration storage is invalid.');
-  this.items=state.integrations.map(item=>({...definition(item),...(item.savedToken?{savedToken:tokenValue(item.savedToken)}:{})}));if(new Set(this.items.map(item=>item.id)).size!==this.items.length)throw Error('Integration storage has duplicate IDs.');
+  this.items=state.integrations.map(item=>({...definition(item),...(item.savedToken?{savedToken:isSealed(item.savedToken)?item.savedToken:tokenValue(item.savedToken)}:{})}));if(new Set(this.items.map(item=>item.id)).size!==this.items.length)throw Error('Integration storage has duplicate IDs.');
  }
- public(item){const {savedToken,...safe}=item;return {...clone(safe),hasToken:!!(this.sessionTokens.get(item.id)||savedToken),tokenStorage:this.sessionTokens.has(item.id)?'session':savedToken?'disk':'none',permissions:['Read repository issues','Read repository pull requests']};}
+ public(item){const {savedToken,...safe}=item;return {...clone(safe),hasToken:!!(this.sessionTokens.get(item.id)||savedToken),tokenStorage:this.sessionTokens.has(item.id)?'session':secretStorage(this.vault,savedToken),permissions:['Read repository issues','Read repository pull requests']};}
  list({botId}={}){return this.items.filter(item=>botId===undefined||item.enabled&&item.botIds.includes(botId)).map(item=>this.public(item));}
- persist(items){writePrivateJson(this.file,{version:1,integrations:items});}
+ persist(items){const sealed=items.map(item=>({...item,...(item.savedToken?{savedToken:this.vault?.key?protectSecret(this.vault,item.savedToken,'github:'+item.id):item.savedToken}:{})}));writePrivateJson(this.file,{version:1,integrations:sealed});for(let i=0;i<items.length;i++)Object.assign(items[i],sealed[i]);}
  cancel(id){for(const controller of this.active.get(id)||[])controller.abort();this.active.delete(id);}
  save(input){
   if(this.closed)throw Error('Integrations are closed.');const old=this.items.find(item=>item.id===input.id),next=definition({...old,...input});next.botIds.forEach(id=>this.store.bot(id));
   if(!old&&this.items.length>=50)throw Error('Remove an integration before adding another (limit 50).');
   if(input.persistToken!==undefined&&typeof input.persistToken!=='boolean')throw Error('Choose whether to remember the token.');
   const changingRepo=old&&old.repo.toLowerCase()!==next.repo.toLowerCase();
-  const token=input.token!==undefined?tokenValue(input.token):changingRepo?'':this.sessionTokens.get(next.id)||old?.savedToken||'';
-  const persist=input.persistToken??!!old?.savedToken;if(persist&&token)next.savedToken=token;
+  const token=input.token!==undefined?tokenValue(input.token):changingRepo?'':this.sessionTokens.get(next.id)||revealSecret(this.vault,old?.savedToken,'github:'+next.id,{required:true})||'';
+  const persist=input.persistToken??!!old?.savedToken;if(persist&&token)next.savedToken=protectSecret(this.vault,token,'github:'+next.id);
   const items=this.items.filter(item=>item.id!==next.id).concat(next);this.persist(items);this.cancel(next.id);this.items=items;this.sessionTokens.delete(next.id);if(token&&!persist)this.sessionTokens.set(next.id,token);return this.public(next);
  }
  remove(id){if(!this.items.some(item=>item.id===id))throw Error('Integration not found.');const items=this.items.filter(item=>item.id!==id);this.persist(items);this.cancel(id);this.items=items;this.sessionTokens.delete(id);return {ok:true};}
@@ -69,7 +70,7 @@ export class IntegrationStore{
   if(!list&&(!Number.isSafeInteger(input.number)||input.number<1))throw Error('Choose a positive issue or pull request number.');
   const route=(action.startsWith('issue')?'issues':'pulls')+(list?'':'/'+input.number),url=new URL('https://api.github.com/repos/'+item.repo+'/'+route);
   if(list){url.searchParams.set('state',state);url.searchParams.set('per_page','50');url.searchParams.set('page',String(page));url.searchParams.set('sort','updated');url.searchParams.set('direction','desc');}
-  const token=this.sessionTokens.get(item.id)||item.savedToken||'',controller=new AbortController();if(!this.active.has(item.id))this.active.set(item.id,new Set());this.active.get(item.id).add(controller);
+  const token=this.sessionTokens.get(item.id)||revealSecret(this.vault,item.savedToken,'github:'+item.id,{required:true})||'',controller=new AbortController();if(!this.active.has(item.id))this.active.set(item.id,new Set());this.active.get(item.id).add(controller);
   try{
    const {data,headers}=await remoteJson(url.href,{fetchImpl:this.fetchImpl,signal:signal?AbortSignal.any([signal,controller.signal]):controller.signal,label:'GitHub',method:'GET',headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2026-03-10','User-Agent':'Crew',...(token?{Authorization:'Bearer '+token}:{})}});
    if(this.items.find(current=>current.id===item.id)!==item||this.closed)throw Error('This integration changed. Read it again using its current permissions.');

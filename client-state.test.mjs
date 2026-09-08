@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {DraftStorage} from './draft-storage.mjs';
+import {SyncClient} from './sync-client.mjs';
+import {ConnectionState,createRefreshLoop,connectionCopy} from './connection-state.mjs';
 
 // Exercise the app's async state handlers with a small DOM adapter. No account,
 // production server, user data, browser profile, or model request is involved.
@@ -12,7 +15,7 @@ function harness(){
  const element=()=>({value:'',dataset:{},style:{},classList:{add(){},remove(){},toggle(){}},open:false,innerHTML:'',textContent:'',disabled:false,dispatchEvent(){},click(){},close(){this.open=false;},showModal(){this.open=true;}});
  const get=id=>elements[id]??=(element());
  get('modal');
- const calls=[],context=vm.createContext({elements,element,calls,md:x=>x,createAppChangesUI:()=>({open(){}}),createSettingsUI:()=>({welcome(){},botConnection(id){calls.push({modelBot:id});}}),console,Event,URL,URLSearchParams,location:{href:'http://127.0.0.1:4318/',origin:'http://127.0.0.1:4318'},requestAnimationFrame:()=>{},
+ const calls=[],context=vm.createContext({elements,element,calls,md:x=>x,createAppChangesUI:()=>({open(){}}),createSettingsUI:()=>({welcome(){},botConnection(id){calls.push({modelBot:id});}}),console,Event,URL,URLSearchParams,AbortSignal,DraftStorage,SyncClient,ConnectionState,connectionCopy,createRefreshLoop:()=>({start(){},wake(){}}),location:{href:'http://127.0.0.1:4318/',origin:'http://127.0.0.1:4318'},requestAnimationFrame:()=>{},
   document:{getElementById:get,addEventListener(){},documentElement:{dataset:{}},visibilityState:'hidden'},
   window:{matchMedia:()=>({matches:false,addEventListener(){}}),addEventListener(){},innerWidth:800},
   history:{state:{},replaceState(){},pushState(){},back(){}},localStorage:{getItem:()=>null,setItem(){}},
@@ -22,13 +25,14 @@ function harness(){
  vm.runInContext(source,context);
  vm.runInContext('const realRefresh=refresh;',context);
  const run=code=>vm.runInContext(code,context);
- run("data={bots:[{id:'a',name:'A',cwd:'C:/crew/a'},{id:'b',name:'B',cwd:'C:/crew/b'}],channels:[{id:'group',members:['a','b']}]};selected='a';channel='group';refresh=async()=>{};screen=async()=>{};toast=s=>calls.push({toast:s});");
+ run("data={bots:[{id:'a',name:'A',cwd:'C:/crew/a'},{id:'b',name:'B',cwd:'C:/crew/b'}],channels:[{id:'group',members:['a','b']}]};selected='a';channel='group';connection.success();refresh=async()=>{};screen=async()=>{};toast=s=>calls.push({toast:s});");
  return {context,run,elements,get,calls,element};
 }
 
-test('conversation source links validate origin, ownership and channel membership before navigating',()=>{
+test('conversation source links validate origin, ownership and channel membership before navigating',async()=>{
  const h=harness();h.run("data={bots:[{id:'a',name:'A',messages:[{id:'dm',taskId:'own',role:'assistant',text:'Saved answer'},{id:'shared',taskId:'team-task',channelId:'team',role:'assistant',text:'Shared answer'}]},{id:'b',name:'B',messages:[]}],tasks:[{id:'other-task',botId:'b'}],channels:[{id:'team',members:['a']}]};navigate=(view,id)=>calls.push({view,id});");
- for(const source of ['https://example.com/?bot=a','/?bot=missing','/?bot=a&message=missing','/?bot=a&task=other-task'])h.run('openSource('+JSON.stringify(source)+')');
+ h.run("api=async()=>{throw Error('Source not found');};");
+ for(const source of ['https://example.com/?bot=a','/?bot=missing','/?bot=a&message=missing','/?bot=a&task=other-task'])await h.run('openSource('+JSON.stringify(source)+')');
  assert.equal(h.calls.filter(c=>c.view).length,0);assert.equal(h.calls.filter(c=>c.toast).length,4);
  h.run("openSource('/?bot=a&message=shared')");assert.deepEqual(JSON.parse(JSON.stringify(h.calls.at(-1))),{view:'channel',id:'team'});
  h.run("data.channels[0].members=[];openSource('/?bot=a&message=shared')");assert.match(h.calls.at(-1).toast,/channel is no longer available/);
@@ -42,6 +46,13 @@ test('refresh after an action waits for a new snapshot when an earlier poll is s
  const polling=h.run('refresh()'),afterAction=h.run('refresh()'),alsoWaiting=h.run('refresh()');assert.equal(afterAction,alsoWaiting);assert.equal(reads,1);
  first.resolve();await polling;await Promise.resolve();assert.equal(reads,2,'A poll begun before enqueue cannot satisfy the action refresh');
  let resolved=false;afterAction.then(()=>{resolved=true;});await Promise.resolve();assert.equal(resolved,false);next.resolve();await afterAction;assert.equal(resolved,true);assert.equal(reads,2);
+});
+
+test('offline and expired connections preserve the draft without submitting a task',async()=>{
+ const {run,get,calls}=harness();get('prompt').value='Keep this draft';
+ run("attachments=[{owner:'a',path:'attachments/report.txt'}];api=async(route,body)=>{calls.push({route,body});return {};};connection.failure();");
+ await run('send({preventDefault(){}})');assert.equal(get('prompt').value,'Keep this draft');assert.equal(calls.filter(c=>c.route).length,0);assert.equal(run('draftAttachments.group.length'),1);
+ run("connection.failure({code:'PAIRING_REQUIRED'});");await run('send({preventDefault(){}})');assert.equal(calls.filter(c=>c.route).length,0);
 });
 
 test('send follows attachment owners when a group chooses a different recipient',async()=>{

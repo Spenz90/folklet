@@ -3,13 +3,46 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 
+// One reviewed dependency list is shared by Windows and Unix packaging and
+// validation. A new production dependency in the lockfile must be added here.
+export const runtimeLibraries=Object.freeze({
+ 'agent-base':'7.1.4','asn1.js':'5.4.1','bn.js':'4.12.5','buffer-equal-constant-time':'1.0.1',
+ 'debug':'4.4.3','ecdsa-sig-formatter':'1.0.11','http_ece':'1.2.0','https-proxy-agent':'7.0.6',
+ 'inherits':'2.0.4','jwa':'2.0.1','jws':'4.0.1','minimalistic-assert':'1.0.1','minimist':'1.2.8',
+ 'ms':'2.1.3','pend':'1.2.0','playwright':'1.62.1','playwright-core':'1.62.1',
+ 'safe-buffer':'5.2.1','safer-buffer':'2.1.2','web-push':'3.6.7','yauzl':'3.4.0'
+});
+export function runtimeNoticeFiles(library){
+ if(!Object.hasOwn(runtimeLibraries,library))throw Error('Unreviewed runtime library.');
+ // The http_ece npm tarball omits its license; the exact upstream MIT text is
+ // retained in our public notice file instead of altering the installed package.
+ if(library==='http_ece')return ['THIRD-PARTY-NOTICES.md'];
+ const license=library==='buffer-equal-constant-time'?'LICENSE.txt':library==='ms'?'license.md':'LICENSE';
+ return [license,...(library.startsWith('playwright')?['NOTICE']:[])].map(file=>'node_modules/'+library+'/'+file);
+}
+export function checkRuntimeLibraries(root){
+ const lock=JSON.parse(fs.readFileSync(regularFile(root,'package-lock.json')));
+ const production=Object.entries(lock.packages).filter(([name,item])=>name&&!item.dev&&!item.optional).map(([name])=>name).sort();
+ const expected=Object.keys(runtimeLibraries).map(name=>'node_modules/'+name).sort();
+ if(JSON.stringify(production)!==JSON.stringify(expected))throw Error('Production dependency set differs from the reviewed desktop package list.');
+ for(const [library,version] of Object.entries(runtimeLibraries)){
+  const actual=JSON.parse(fs.readFileSync(regularFile(root,'node_modules/'+library+'/package.json')));
+  if(actual.version!==version||lock.packages['node_modules/'+library]?.version!==version)throw Error('Unexpected runtime dependency version: '+library);
+  for(const notice of runtimeNoticeFiles(library))if(fs.statSync(regularFile(root,notice)).size<20)throw Error('Runtime dependency notice is missing: '+library);
+ }
+ return Object.keys(runtimeLibraries).length;
+}
+
 // A positive file list keeps local data out even when packaging a used installation.
 export const sourceFiles = [
+  "credential-vault.mjs", "native/Vault-Windows.ps1", "backups.mjs", "draft-storage.mjs", "state-sync.mjs", "sync-client.mjs", "usage.mjs", "push-notifications.mjs", "plugin-catalog.mjs", "updates.mjs", "reliability-ui.mjs", "reliability.test.mjs", "hosting/restore-backup.mjs", "scripts/Publisher-Sign.mjs", "RECOVERY.md", "REAL-WORLD-CHECKS.md",
   '.gitignore', '.gitattributes', '.github/workflows/ci.yml', '.github/dependabot.yml',
   'README.md', 'LICENSE', 'SECURITY.md', 'CONTRIBUTING.md', 'CHANGELOG.md',
   'RELEASING.md', 'THIRD-PARTY-NOTICES.md', 'RELEASE-CHECKS.md',
   'QUICKSTART.md', 'PROVIDERS.md', 'HOSTING.md', 'BUSINESS.md', 'FEATURE-ROADMAP.md', 'FEATURES.md',
   'package.json', 'package-lock.json', 'PLUGINS.md',
+  'host-status.mjs', 'host-status.test.mjs', 'hosting-ui.mjs', 'hosting-ui.test.mjs',
+  'connection-state.mjs', 'connection-state.test.mjs', 'hosting/check-host.mjs',
   'plugins-ui.mjs', 'plugins-ui.test.mjs', 'plugin-connections.mjs', 'plugin-connections.test.mjs',
   'mcp-client.mjs', 'mcp-client.test.mjs', 'plugin-packages.mjs', 'plugin-packages.test.mjs', 'engine-plugins.test.mjs',
   'scripts/Linux-Sandbox.mjs', 'linux-sandbox.test.mjs',
@@ -108,7 +141,8 @@ export function collectReleaseFiles(root, kind = 'Source') {
   const files = [...sourceFiles];
   if (kind === 'Windows') {
     files.push(...windowsFiles);
-    for (const [dependency,version] of Object.entries({playwright:'1.62.1','playwright-core':'1.62.1',yauzl:'3.4.0',pend:'1.2.0'})) {
+    checkRuntimeLibraries(root);
+    for (const [dependency,version] of Object.entries(runtimeLibraries)) {
       const packageFile = regularFile(root, `node_modules/${dependency}/package.json`);
       if (JSON.parse(fs.readFileSync(packageFile)).version !== version) throw Error(`Unexpected ${dependency} version`);
       files.push(...tree(root, `node_modules/${dependency}`));

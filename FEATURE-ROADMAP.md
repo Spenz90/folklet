@@ -1,4 +1,13 @@
-# Folklet 0.6: from ideas to features
+# Folklet: features and release readiness
+
+## Reliability upgrade — development source
+
+The next source increment covers encrypted workspace backups and separate restores, optional mobile draft autosave, smaller state updates with history pagination, protected remembered credentials, complete restart warnings, opt-in generic phone push, API metering/limits and a starter tool catalog. Data controls are under **Data & reliability**. See [Recovery](RECOVERY.md) and [real-world checks](REAL-WORLD-CHECKS.md). These changes are not part of the published 0.6.1 downloads.
+
+
+## Next upgrade: mobile and private hosting (development source)
+
+The next increment adds a Host status screen, five-step Always-on setup, a read-only server checker and connection recovery for the phone. It checks actual service settings, highlights temporary model keys, shows the host clock, preserves drafts in the open page during disconnections and does not replay tasks. See [Quick start](QUICKSTART.md#mobile-and-hosting-improvements-in-the-development-version) and [Hosting](HOSTING.md#follow-setup-inside-folklet). These changes are not in the published 0.6.1 downloads. Real VPS and physical iPhone validation, publisher signing and managed hosting remain separate work.
 
 The seven ideas researched on September 5, 2026 are implemented in the **0.6.0 community-preview source**. An additional source-draft workflow makes app improvements reviewable before application. Use [the feature guide](FEATURES.md) for instructions and [release checks](RELEASE-CHECKS.md) for validation status. Implementation does not mean every device, provider or external service has had a live test.
 

@@ -23,3 +23,6 @@ Before quoting a real plan, measure CPU/RAM/storage use, concurrent browser dema
 An accepted app improvement proposal in Folklet is a review record, not an automatically shipped product change. A managed operator would still review, test and approve code updates through a normal release process.
 
 The [hosting guide](HOSTING.md) is the usable self-hosted option today. It has no commercial checkout or automatic provisioning.
+## Path from this upgrade to a paid offering
+
+The development source adds the recovery, secret storage, usage visibility and readiness controls needed to evaluate private managed instances. A prospective paid plan can cover one isolated host, tested backups/restores, reviewed updates, monitoring and support while the MIT local app remains free. Keep model billing with the customer and validate real operating costs before setting prices. Provisioning, payment collection, tax handling, cancellation, service terms and a demonstrated recovery commitment remain prerequisites; no paid service has been launched by this source upgrade.

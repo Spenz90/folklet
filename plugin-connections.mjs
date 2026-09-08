@@ -1,3 +1,4 @@
+import {isSealed,protectSecret,revealSecret,secretStorage} from './credential-vault.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
@@ -64,34 +65,35 @@ async function abortable(work,signal){
 }
 async function awaitApproval(approve,request,signal){if(typeof approve!=='function')throw Error('A user approval is required for every plugin tool call.');return abortable(Promise.resolve().then(()=>{signal.throwIfAborted();return approve(request,signal);}),signal);}
 export class PluginConnections{
- constructor({dataRoot,store,fetchImpl=fetch,spawnProcess=spawn}={}){
+ constructor({dataRoot,store,fetchImpl=fetch,spawnProcess=spawn,vault}={}){
   const stat=fs.lstatSync(dataRoot,{throwIfNoEntry:false});if(stat?.isSymbolicLink()||stat&&!stat.isDirectory())throw Error('Plugin data must use a private regular directory.');fs.mkdirSync(dataRoot,{recursive:true});
-  this.file=path.join(dataRoot,'plugin-connections.json');this.store=store;this.fetchImpl=fetchImpl;this.spawnProcess=spawnProcess;this.sessionSecrets=new Map();this.runtimes=new Map();this.active=new Map();this.controlOrigins=new Set();this.closed=false;
+  this.vault=vault;this.file=path.join(dataRoot,'plugin-connections.json');this.store=store;this.fetchImpl=fetchImpl;this.spawnProcess=spawnProcess;this.sessionSecrets=new Map();this.runtimes=new Map();this.active=new Map();this.controlOrigins=new Set();this.closed=false;
   const data=loadReviewData(this.file,{version:1,connections:[]},MAX_STORE);if(data.version!==1||!Array.isArray(data.connections)||data.connections.length>32)throw Error('Plugin connection storage is invalid.');
-  this.items=data.connections.map(item=>({...definition(item),...(item.savedSecrets?{savedSecrets:secretsFor(item.savedSecrets)}:{})}));if(new Set(this.items.map(item=>item.id)).size!==this.items.length)throw Error('Plugin connection storage contains duplicate IDs.');
+  this.items=data.connections.map(item=>({...definition(item),...(item.savedSecrets?{savedSecrets:isSealed(item.savedSecrets)?item.savedSecrets:secretsFor(item.savedSecrets)}:{})}));if(new Set(this.items.map(item=>item.id)).size!==this.items.length)throw Error('Plugin connection storage contains duplicate IDs.');
  }
  protectControlOrigin(value){const url=new URL(value);this.controlOrigins.add(url.origin);if(['127.0.0.1','localhost','[::1]'].includes(url.hostname))for(const host of ['127.0.0.1','localhost','[::1]'])this.controlOrigins.add(`${url.protocol}//${host}${url.port?':'+url.port:''}`);for(const item of this.items)if(item.url&&this.controlOrigins.has(new URL(item.url).origin))this.cancel(item.id);}
  assertURL(value){const url=safePluginURL(value);if(this.controlOrigins.has(new URL(url).origin))throw Error('Plugin connections cannot access FOLKLET owner or phone control endpoints.');return url;}
- secret(item){return this.sessionSecrets.get(item.id)||item.savedSecrets||{token:'',headers:{},env:{}};}
- public(item){const {savedSecrets,...rest}=item,secret=this.secret(item),runtime=this.runtimes.get(item.id);return cleanJSON({...clone(rest),connected:!!runtime&&!runtime.client?.closed,enabled:item.enabled===true&&!!runtime&&!runtime.client?.closed,hasSecrets:!noSecrets(secret),secretStorage:this.sessionSecrets.has(item.id)?'session':savedSecrets?'disk':'none',envKeys:Object.keys(secret.env),headerNames:Object.keys(secret.headers),warning:warning(item),access:access(item)},secretValues(secret));}
+ secret(item){return this.sessionSecrets.get(item.id)||revealSecret(this.vault,item.savedSecrets,'plugin:'+item.id)||{token:'',headers:{},env:{}};}
+ public(item){const {savedSecrets,...rest}=item,secret=this.secret(item),runtime=this.runtimes.get(item.id);return cleanJSON({...clone(rest),connected:!!runtime&&!runtime.client?.closed,enabled:item.enabled===true&&!!runtime&&!runtime.client?.closed,hasSecrets:!!savedSecrets||!noSecrets(secret),secretStorage:this.sessionSecrets.has(item.id)?'session':secretStorage(this.vault,savedSecrets),envKeys:Object.keys(secret.env),headerNames:Object.keys(secret.headers),warning:warning(item),access:access(item)},secretValues(secret));}
  list({botId}={}){if(botId!==undefined)this.store.bot(botId);return this.items.filter(item=>botId===undefined||item.enabled&&this.runtimes.has(item.id)&&!this.runtimes.get(item.id).client?.closed&&item.botIds.includes(botId)&&item.allowedTools.length).map(item=>{const value=this.public(item);if(botId!==undefined)return {id:value.id,name:value.name,type:value.type,tools:value.tools.filter(tool=>item.allowedTools.includes(tool.name)),access:value.access,warning:value.warning};return value;});}
- persist(items){saveReviewData(this.file,{version:1,connections:items},MAX_STORE);}
+ persist(items){const sealed=items.map(item=>({...item,...(item.savedSecrets?{savedSecrets:this.vault?.key?protectSecret(this.vault,item.savedSecrets,'plugin:'+item.id):item.savedSecrets}:{})}));saveReviewData(this.file,{version:1,connections:sealed},MAX_STORE);for(let i=0;i<items.length;i++)Object.assign(items[i],sealed[i]);}
  validate(input){const item=definition(input);item.botIds.forEach(id=>this.store.bot(id));if(item.url)this.assertURL(item.url);secretsFor(input);return clone(item);}
  cancel(id){this.runtimes.get(id)?.client?.close();this.runtimes.delete(id);for(const controller of this.active.get(id)||[])controller.abort();this.active.delete(id);}
  save(input){
-  if(this.closed)throw Error('Plugin connections are closed.');if(!object(input))throw Error('Enter a plugin connection.');const old=this.items.find(item=>item.id===input.id);
+  if(this.closed)throw Error('Plugin connections are closed.');if(!object(input))throw Error('Enter a plugin connection.');const old=this.items.find(item=>item.id===input.id);if(isSealed(old?.savedSecrets)&&!this.vault?.key)throw Error('Unlock Credential protection before editing this connection.');
   if(input.id&&!old)idValue(input.id);if(!old&&this.items.length>=32)throw Error('Remove a connection before adding another (limit 32).');
   const next=definition({...old,...input,...(old?{tools:old.type==='mcp'&&input.type!=='openclaw'?old.tools:input.tools??old.tools,sourcePackageId:old.sourcePackageId,packageRoot:old.packageRoot,packageData:old.packageData}: {})});next.botIds.forEach(id=>this.store.bot(id));if(next.url)this.assertURL(next.url);
   if(input.persistSecrets!==undefined&&typeof input.persistSecrets!=='boolean')throw Error('Choose whether to remember plugin credentials.');
   const sameTarget=old&&['type','transport','url','command','cwd','sessionKey'].every(key=>old[key]===next[key])&&JSON.stringify(old.args)===JSON.stringify(next.args);
   if(!sameTarget&&input.allowPackageInstall===undefined&&next.transport==='stdio')next.allowPackageInstall=false;
   const previous=sameTarget?this.secret(old):{token:'',headers:{},env:{}},secret=secretsFor({token:input.token??previous.token,headers:input.headers??previous.headers,env:input.env??previous.env});
-  const persist=input.persistSecrets??(sameTarget&&!!old?.savedSecrets);if(persist&&!noSecrets(secret))next.savedSecrets=secret;
+  const persist=input.persistSecrets??(sameTarget&&!!old?.savedSecrets);if(persist&&!noSecrets(secret))next.savedSecrets=protectSecret(this.vault,secret,'plugin:'+next.id);
   if(next.type==='openclaw'&&next.allowedTools.some(name=>!next.tools.some(tool=>tool.name===name)))throw Error('Select only tools declared for this OpenClaw connection.');
   const items=this.items.filter(item=>item.id!==next.id).concat(next);this.persist(items);this.cancel(next.id);this.items=items;this.sessionSecrets.delete(next.id);if(!persist&&!noSecrets(secret))this.sessionSecrets.set(next.id,secret);return this.public(next);
  }
  async connect({id,confirmed}={}){
   if(this.closed)throw Error('Plugin connections are closed.');if(confirmed!==true)throw Error('Review and confirm the plugin executable or endpoint before connecting.');const item=this.items.find(item=>item.id===id);if(!item)throw Error('Plugin connection not found.');
+  if(isSealed(item.savedSecrets)&&!this.vault?.key)throw Error('Unlock Credential protection before connecting this plugin.');
   this.cancel(id);const controller=this.track(id),secret=this.secret(item);let client;
   try{
    let tools=item.tools;if(item.type==='mcp'){

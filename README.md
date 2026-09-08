@@ -8,6 +8,8 @@ Folklet was previously called Crew. Existing workspaces stay in their original d
 
 **Release status:** 0.6.1 is a community preview. Desktop downloads require matching-platform startup checks before publication. Windows and Mac publisher signing, physical device checks and some live provider checks remain outstanding. Read the evidence and limitations attached to each published release.
 
+**Development source after 0.6.1:** the next upgrade adds encrypted backups and separate restore, credential protection, optional draft autosave, smaller mobile updates and history loading, API usage limits, opt-in phone push and a starter plugin catalog. Open **My workspace → Data & reliability** to set them up. These additions are not in the existing 0.6.1 downloads. Read [Recovery](RECOVERY.md) and the [real-world release checks](REAL-WORLD-CHECKS.md).
+
 Create a researcher, writer, builder or assistant. Give each a role, talk to them individually or in a group, and keep their files, memory and recurring work together. Use your ChatGPT account through the bundled official Codex engine, or connect an API or local model. **The Codex desktop app is not required.**
 
 Folklet is free, open source software under the [MIT license](LICENSE). You pay your chosen model provider and, if you choose a server, your hosting provider. There is no Folklet subscription or hosted service to buy in this preview.

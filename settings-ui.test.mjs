@@ -31,7 +31,7 @@ function harness(){
   setTimeout:fn=>{const id=++nextTimer;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id),
   api:async(route,body)=>{calls.push({route,body:body?JSON.parse(JSON.stringify(body)):undefined});return context.respond(route,body);},
   refresh:async()=>{refreshes++;},getBots:()=>[{id:'bot',name:'Test bot'}],accountPanel:async()=>{},md:text=>String(text),
-  createHostingUI:()=>({open:async()=>{featureCalls.push('host');},setup(){featureCalls.push('cloud');}}),
+  createReliabilityUI:()=>({open:async()=>{featureCalls.push('reliability');}}),createHostingUI:()=>({open:async()=>{featureCalls.push('host');},setup(){featureCalls.push('cloud');}}),
   createModelSettingsUI:()=>({edit:async id=>{modelCalls.push(id);},listBots:async()=>{}}),
   createPluginsUI:()=>({open:async()=>{featureCalls.push('plugins');}}),createSkillsUI:()=>({open:async()=>{featureCalls.push('skills');}}),createLearningReviewUI:()=>({open:async()=>{featureCalls.push('learning');}}),createRecallUI:()=>({open:async()=>{featureCalls.push('recall');}}),createIntegrationsUI:()=>({open:async()=>{featureCalls.push('integrations');}}),createNotificationsUI:()=>({open:async()=>{featureCalls.push('notifications');}}),createFallbackUI:()=>({open:async()=>{featureCalls.push('fallback');}}),createRoutinePolicyUI:()=>({open:async()=>{featureCalls.push('routine');}}),
   modal(title,subtitle,body,type){modals.push({title,subtitle,type});for(const id of Object.keys(elements))if(id!=='modal')delete elements[id];elements.modal.open=true;elements.modal.dataset.kind=type;elements['modal-content']=element();elements['modal-content'].innerHTML=body;elements['modal-error']=element();}

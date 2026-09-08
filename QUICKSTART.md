@@ -9,9 +9,13 @@ On desktop, workspace controls are under **My workspace** at the bottom of the s
 - **Host status** shows the connected host's uptime, disk space, queued work, routines and settings that need review. The phone's bot list has a connection-status button.
 - **Always-on setup** walks you through a private Ubuntu server in five steps, with commands you can review and copy. Read [Hosting](HOSTING.md) for the complete instructions.
 - If the connection drops, Folklet reconnects with less frequent checks and refreshes when you return to the app. Unsent text and attachment selections stay in the **open page**. Nothing is automatically resent.
-- If the host restarts or pairing expires, copy your draft before choosing **Reload to reconnect**. Drafts are not saved to the phone's disk; closing or reloading the page discards them. Recheck attachments after reconnecting. If a send lost its confirmation, inspect task history before sending again: the host may already have received it.
+- If the host restarts or pairing expires, copy your draft before choosing **Reload to reconnect**. Without optional Draft autosave, drafts are not saved to the phone's disk; closing or reloading the page discards them. Recheck attachments after reconnecting. If a send lost its confirmation, inspect task history before sending again: the host may already have received it.
 
 These changes are in the development source after 0.6.1; the published 0.6.1 downloads do not include them.
+
+## Data & reliability in development source
+
+Open **My workspace → Data & reliability**, or **Settings → Data & reliability** on a phone. Opt in to draft autosave on that device. On the host, configure credential protection, create and download a backup, review API usage/limits, and enable phone push if wanted. Each phone then grants its own notification permission. Read [Recovery](RECOVERY.md) before migration and [real-world checks](REAL-WORLD-CHECKS.md) for remaining release work.
 
 ## 1. Open the app
 

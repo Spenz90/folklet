@@ -104,3 +104,7 @@ Get-FileHash .\Folklet-Windows.zip -Algorithm SHA256
 Compare the value with `Folklet-Windows.zip.sha256` from the same trusted release. A checksum identifies matching bytes; publisher signing is a separate future release task.
 
 On macOS use `shasum -a 256 <archive>`; on Linux use `sha256sum <archive>`. Compare against the matching `.sha256` file.
+
+## Reliability upgrade release gate
+
+See [Recovery](RECOVERY.md) for backup/migration and [real-world checks](REAL-WORLD-CHECKS.md) for device, server and signing validation. `scripts/Publisher-Sign.mjs` prints a plan without applying it; real publisher identities and notarization profiles must be configured on the matching host. Rebuild and revalidate package provenance/checksums after signing. Do not relabel current unsigned 0.6.1 downloads as a new signed release.

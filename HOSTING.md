@@ -145,3 +145,7 @@ systemctl --user disable --now crew.service
 ```
 
 Service files are ~/.config/systemd/user/crew.service, ~/.config/crew/crew.env and ~/.local/lib/crew/start-host.sh. Removing a service does not erase your private data. Review those exact files before removing them, and preserve any backups you need. Log output can contain private task information; redact it before sharing.
+
+## Backups, credentials and phone alerts in development source
+
+Use **Data & reliability** to configure credential protection, encrypted idle backups, API limits and optional phone push. A password vault must be unlocked after restart unless an administrator has configured a systemd service credential. Plugins still need manual reconnection. Host status now includes these dependencies and temporary integration/notification tokens. Restore copies start with routines paused and tool connections disabled. See [Recovery](RECOVERY.md) for migration and service-credential instructions. No VPS has been bought or deployed.

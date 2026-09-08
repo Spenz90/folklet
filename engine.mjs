@@ -155,6 +155,7 @@ export class Engine {
    const modelMetadata=connection.type==='openrouter'&&reasoningEffort&&this.providers.modelMetadata?await this.providers.modelMetadata(b.providerId,l.model,{signal:l.abort.signal}):undefined;
    if(t.cancelRequested||l.abort.signal.aborted)throw Object.assign(Error('This task was stopped.'),{name:'AbortError'});
    await this.apiRunner({connection,model:l.model,reasoningEffort,modelMetadata,system,messages:history,tools:crewTools,signal:l.abort.signal,
+    beforeRequest:()=>this.usage?.beforeRequest({providerId:b.providerId,model:l.model,taskId:t.id,botId:b.id}),onUsage:(id,value)=>this.usage?.record(id,value),
     executeTool:(name,args)=>this.dynamic(b,l,name,args),
     onMessage:text=>{if(l.task===t&&!t.cancelRequested){this.taskRuns.get(t.id)?.fallback.markAssistantOutput();this.s.message(b,'assistant',text,{taskId:t.id,channelId:t.channelId});}},
     onActivity:activity=>{if(l.task===t){l.activity=activity;this.s.save();}}
@@ -345,7 +346,7 @@ export class Engine {
  permissionContext(b){
   return JSON.stringify({role:b.role,memory:b.memory,recall:b.recallShared===true,channels:this.s.db.channels.filter(c=>c.members.includes(b.id)),native:this.nativeComputer?.status()?.enabled===true,integrations:this.integrations?.list({botId:b.id})||[],plugins:this.plugins?.list({botId:b.id})||[],skills:this.skills?.listForBot?.(b.id)||[],learning:this.learning?.contextFor(b.id)||'',memoryPolicy:this.learning?.memoryPolicy?.(),botNotes:this.learning?.readMemory?.(b.id,'bot')??'',teamNotes:this.learning?.readMemory?.(b.id,'team')??'',fallback:b.fallback||null});
  }
- notifyChannel(event){try{Promise.resolve(this.notifications?.notify(event)).catch(()=>{});}catch{}}
+ notifyChannel(event){for(const channel of [this.notifications,this.push])try{Promise.resolve(channel?.notify(event)).catch(()=>{});}catch{}}
  finish(b,l,status,error){
   const t=l.task;if(!t)return;
   if(status==='failed'&&this.taskRuns.has(t.id)&&!l.ending){void this.failedAttempt(b,l,t,error).catch(failure=>this.runtimeFailure(failure,b,l));return;}

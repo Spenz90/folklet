@@ -160,7 +160,7 @@ test('non-ASCII invalid CSRF values are rejected without a comparison error',asy
  const f=await fixture(t),p=await f.pair();
  const response=await f.request('/api/state',{headers:{...p.headers,'X-Crew-Token':'é'.repeat(p.csrf.length)}});
  assert.equal(response.status,403);assert.equal(f.requests.length,0);
- assert.deepEqual(JSON.parse(response.text),{error:'Refresh FOLKLET to reconnect.'});
+ assert.deepEqual(JSON.parse(response.text),{error:'Refresh FOLKLET to reconnect.',code:'CONNECTION_EXPIRED'});
 });
 
 test('authenticated HTML exposes only mobile CSRF while preserving the app and response protections',async t=>{
@@ -197,7 +197,7 @@ test('proxy preserves authenticated JSON upload bodies and binary file downloads
 
 test('paired phones cannot manage any plugin route but can answer a normal scoped approval',async t=>{
  const f=await fixture(t),p=await f.pair();
- const routes=['plugins','plugin-packages','plugin-save','plugin-connect','plugin-remove','plugin-inspect','plugin-file','plugin-install','plugin-package-remove','x/../plugin-file','plugin-future-operation'];
+ const routes=['vault-status','vault-configure','vault-unlock','backup-status','backup-download','backup-create','backup-configure','backup-inspect','backup-restore','catalog-prepare','catalog-skill','usage-configure','push-configure','update-check','plugins','plugin-packages','plugin-save','plugin-connect','plugin-remove','plugin-inspect','plugin-file','plugin-install','plugin-package-remove','x/../plugin-file','plugin-future-operation'];
  for(const route of routes)for(const method of ['GET','POST']){
   const response=await f.request('/api/'+route,{method,headers:{...p.headers,Origin:origin},...(method==='POST'?{body:{id:'fixture-package',path:'SKILL.md'}}:{})});assert.equal(response.status,403,method+' '+route);assert.ok(!response.text.includes(backendToken));
  }

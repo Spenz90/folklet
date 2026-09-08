@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 
 // A positive file list keeps local data out even when packaging a used installation.
 export const sourceFiles = [
+  "credential-vault.mjs", "native/Vault-Windows.ps1", "backups.mjs", "draft-storage.mjs", "state-sync.mjs", "sync-client.mjs", "usage.mjs", "push-notifications.mjs", "plugin-catalog.mjs", "updates.mjs", "reliability-ui.mjs", "reliability.test.mjs", "hosting/restore-backup.mjs", "scripts/Publisher-Sign.mjs", "RECOVERY.md", "REAL-WORLD-CHECKS.md",
   '.gitignore', '.gitattributes', '.github/workflows/ci.yml', '.github/dependabot.yml',
   'README.md', 'LICENSE', 'SECURITY.md', 'CONTRIBUTING.md', 'CHANGELOG.md',
   'RELEASING.md', 'THIRD-PARTY-NOTICES.md', 'RELEASE-CHECKS.md',

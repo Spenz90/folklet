@@ -1,3 +1,4 @@
+import {isSealed,protectSecret,revealSecret,secretStorage} from './credential-vault.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {randomBytes,randomUUID,createHash} from 'node:crypto';
@@ -49,36 +50,37 @@ function text(value,max,label){if(typeof value!=='string'||value.length>max||/[\
 function readPrivate(file,fallback){if(!fs.existsSync(file))return fallback;if(fs.lstatSync(file).isSymbolicLink())throw Error('Provider configuration cannot be a symbolic link.');try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{throw Error('Provider configuration could not be read. Restore its private backup.');}}
 function writePrivate(file,value){if(fs.lstatSync(file,{throwIfNoEntry:false})?.isSymbolicLink())throw Error('Provider configuration cannot be a symbolic link.');const temporary=file+'.'+randomUUID()+'.tmp';try{fs.writeFileSync(temporary,JSON.stringify(value,null,2)+'\n',{mode:0o600});fs.renameSync(temporary,file);fs.chmodSync(file,0o600);}finally{if(fs.existsSync(temporary))fs.unlinkSync(temporary);}}
 export class ProviderStore{
- constructor(dataRoot,{fetchImpl=fetch,now=Date.now}={}){
-  this.root=dataRoot;this.fetchImpl=fetchImpl;this.now=now;this.sessionKeys=new Map();this.logins=new Map();this.modelCache=new Map();
+ constructor(dataRoot,{fetchImpl=fetch,now=Date.now,vault}={}){
+  this.vault=vault;this.root=dataRoot;this.fetchImpl=fetchImpl;this.now=now;this.sessionKeys=new Map();this.logins=new Map();this.modelCache=new Map();
   fs.mkdirSync(dataRoot,{recursive:true});this.configFile=path.join(dataRoot,'providers.json');this.keyFile=path.join(dataRoot,'provider-secrets.json');
   const config=readPrivate(this.configFile,{providers:[]});this.providers=Array.isArray(config.providers)?config.providers.map(p=>this.definition(p)):[];
   const secrets=readPrivate(this.keyFile,{keys:{}});this.savedKeys=new Map();
-  for(const p of this.providers)if(typeof secrets.keys?.[p.id]==='string')this.savedKeys.set(p.id,secrets.keys[p.id]);
+  for(const p of this.providers)if(typeof secrets.keys?.[p.id]==='string'||isSealed(secrets.keys?.[p.id]))this.savedKeys.set(p.id,secrets.keys[p.id]);
  }
  definition(input){
   const type=input.type;if(!types.has(type))throw Error('Choose a supported provider.');
   const id=input.id||randomUUID();if(typeof id!=='string'||! /^[a-zA-Z0-9_-]{1,100}$/.test(id)||id==='codex')throw Error('Invalid provider ID.');
   return {id,type,name:text(input.name||types.get(type).name,80,'provider name'),baseUrl:providerBaseUrl(type,input.baseUrl),defaultModel:text(input.defaultModel||'',200,'model name'),auth:input.auth==='oauth'&&type==='openrouter'?'oauth':type==='ollama'?'none':'key'};
  }
- public(provider){const key=this.sessionKeys.has(provider.id)||this.savedKeys.has(provider.id);return {...provider,hasKey:key,keyStorage:this.sessionKeys.has(provider.id)?'session':this.savedKeys.has(provider.id)?'disk':'none'};}
+ public(provider){const key=this.sessionKeys.has(provider.id)||this.savedKeys.has(provider.id);return {...provider,hasKey:key,keyStorage:this.sessionKeys.has(provider.id)?'session':secretStorage(this.vault,this.savedKeys.get(provider.id))};}
  list(){return [{...builtIn},...this.providers.map(p=>this.public(p))];}
  save(input){
+  if(input.persistKey===true&&this.vault&&!this.vault.key)throw Error('Set up or unlock Credential protection before remembering keys.');
   const old=this.providers.find(p=>p.id===input.id),definition=this.definition({...old,...input});
   const changedEndpoint=old&&(old.baseUrl!==definition.baseUrl||old.type!==definition.type);
   if(input.apiKey!==undefined){const key=text(input.apiKey,16000,'API key');if(key&&/\s/.test(key))throw Error('API keys cannot contain spaces.');this.sessionKeys.delete(definition.id);this.savedKeys.delete(definition.id);if(key)(input.persistKey===true?this.savedKeys:this.sessionKeys).set(definition.id,key);}
   else if(changedEndpoint){this.sessionKeys.delete(definition.id);this.savedKeys.delete(definition.id);}
   else if(input.persistKey===true&&this.sessionKeys.has(definition.id)){this.savedKeys.set(definition.id,this.sessionKeys.get(definition.id));this.sessionKeys.delete(definition.id);}
-  else if(input.persistKey===false&&this.savedKeys.has(definition.id)){this.sessionKeys.set(definition.id,this.savedKeys.get(definition.id));this.savedKeys.delete(definition.id);}
+  else if(input.persistKey===false&&this.savedKeys.has(definition.id)){this.sessionKeys.set(definition.id,revealSecret(this.vault,this.savedKeys.get(definition.id),'provider:'+definition.id,{required:true}));this.savedKeys.delete(definition.id);}
   this.modelCache.delete(definition.id);this.providers=this.providers.filter(p=>p.id!==definition.id);this.providers.push(definition);this.persist();return this.public(definition);
  }
  persist(){
   writePrivate(this.configFile,{schemaVersion:1,providers:this.providers});
-  if(this.savedKeys.size)writePrivate(this.keyFile,{schemaVersion:1,keys:Object.fromEntries(this.savedKeys)});
+  if(this.savedKeys.size){const saved=new Map([...this.savedKeys].map(([id,value])=>[id,this.vault?.key?protectSecret(this.vault,value,'provider:'+id):value]));writePrivate(this.keyFile,{schemaVersion:1,keys:Object.fromEntries(saved)});this.savedKeys=saved;}
   else if(fs.existsSync(this.keyFile)){if(fs.lstatSync(this.keyFile).isSymbolicLink())throw Error('Provider configuration cannot be a symbolic link.');fs.unlinkSync(this.keyFile);}
  }
  remove(id){if(id==='codex')throw Error('The default ChatGPT connection cannot be removed here.');if(!this.providers.some(p=>p.id===id))throw Error('Provider not found.');this.providers=this.providers.filter(p=>p.id!==id);this.sessionKeys.delete(id);this.savedKeys.delete(id);this.modelCache.delete(id);this.persist();return {ok:true};}
- getConnection(id){const provider=this.providers.find(p=>p.id===id);if(!provider)throw Error('Choose a configured provider.');const key=this.sessionKeys.get(id)||this.savedKeys.get(id)||'';if(!key&&!['ollama','custom'].includes(provider.type))throw Error('Add an API key for this provider in Connections.');return {...provider,key};}
+ getConnection(id){const provider=this.providers.find(p=>p.id===id);if(!provider)throw Error('Choose a configured provider.');const key=this.sessionKeys.get(id)||revealSecret(this.vault,this.savedKeys.get(id),'provider:'+id,{required:true})||'';if(!key&&!['ollama','custom'].includes(provider.type))throw Error('Add an API key for this provider in Connections.');return {...provider,key};}
  async modelList(id,{signal}={}){
   const connection=this.getConnection(id),definition=this.providers.find(p=>p.id===id);const body=await providerJson(connection.baseUrl+'/models',{fetchImpl:this.fetchImpl,signal,timeoutMs:20000,headers:providerHeaders(connection)});
   if(!Array.isArray(body.data))throw Error('This provider did not return a model list. Enter a model ID manually.');

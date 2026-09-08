@@ -1,3 +1,4 @@
+import {isSealed,protectSecret,revealSecret,secretStorage} from './credential-vault.mjs';
 import path from 'node:path';
 import {randomBytes,randomUUID} from 'node:crypto';
 import {readPrivateJson,writePrivateJson,remoteJson} from './integrations.mjs';
@@ -14,19 +15,20 @@ function quietValue(value){
 export function inQuietHours(quiet,now){if(!quiet.enabled)return false;const parts=new Intl.DateTimeFormat('en-GB',{timeZone:quiet.timeZone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(now));const time=parts.find(p=>p.type==='hour').value+':'+parts.find(p=>p.type==='minute').value;return quiet.start<quiet.end?time>=quiet.start&&time<quiet.end:time>=quiet.start||time<quiet.end;}
 function recipient(value){if(!value||!/^\d{1,16}$/.test(value.id)||!Number.isSafeInteger(Number(value.id))||Number(value.id)<1||typeof value.name!=='string')throw Error('Stored Telegram recipient is invalid.');return {id:value.id,name:value.name.slice(0,150),username:typeof value.username==='string'?value.username.slice(0,40):''};}
 export class TelegramNotifications{
- constructor({dataRoot,fetchImpl=fetch,now=Date.now}={}){
-  this.file=path.join(dataRoot,'telegram-notifications.json');this.fetchImpl=fetchImpl;this.now=now;this.sessionToken='';this.pending=null;this.controller=new AbortController();this.closed=false;this.revision=0;this.queue=Promise.resolve();this.queued=0;this.seen=new Set();this.lastError='';this.lastDelivery=null;this.checkPromise=null;this.beginPromise=null;
+ constructor({dataRoot,fetchImpl=fetch,now=Date.now,vault}={}){
+  this.vault=vault;this.file=path.join(dataRoot,'telegram-notifications.json');this.fetchImpl=fetchImpl;this.now=now;this.sessionToken='';this.pending=null;this.controller=new AbortController();this.closed=false;this.revision=0;this.queue=Promise.resolve();this.queued=0;this.seen=new Set();this.lastError='';this.lastDelivery=null;this.checkPromise=null;this.beginPromise=null;
   const saved=readPrivateJson(this.file,{version:1,enabled:false,quietHours:emptyQuiet(),baseUrl:'',recipient:null});if(saved.version!==1||typeof saved.enabled!=='boolean')throw Error('Telegram notification storage is invalid.');
-  this.config={version:1,enabled:saved.enabled,quietHours:quietValue(saved.quietHours),baseUrl:privateBase(saved.baseUrl||''),recipient:saved.recipient?recipient(saved.recipient):null,...(saved.savedToken?{savedToken:tokenValue(saved.savedToken)}:{})};
+  this.config={version:1,enabled:saved.enabled,quietHours:quietValue(saved.quietHours),baseUrl:privateBase(saved.baseUrl||''),recipient:saved.recipient?recipient(saved.recipient):null,...(saved.savedToken?{savedToken:isSealed(saved.savedToken)?saved.savedToken:tokenValue(saved.savedToken)}:{})};
  }
- token(){return this.sessionToken||this.config.savedToken||'';}
- status(){const {savedToken,...safe}=this.config;return {...clone(safe),enabled:!this.closed&&safe.enabled&&!!this.token()&&!!safe.recipient,hasToken:!!this.token(),tokenStorage:this.sessionToken?'session':savedToken?'disk':'none',error:this.lastError,lastDelivery:clone(this.lastDelivery),pairing:this.pending?{pairingId:this.pending.id,expiresAt:this.pending.expiresAt,preview:clone(this.pending.preview)}:null};}
+ token(){return this.sessionToken||revealSecret(this.vault,this.config.savedToken,'telegram')||'';}
+ protect(){if(this.config.savedToken)this.config.savedToken=protectSecret(this.vault,this.config.savedToken,'telegram');writePrivateJson(this.file,this.config);}
+ status(){const {savedToken,...safe}=this.config;return {...clone(safe),enabled:!this.closed&&safe.enabled&&!!this.token()&&!!safe.recipient,hasToken:!!this.token(),tokenStorage:this.sessionToken?'session':secretStorage(this.vault,savedToken),error:this.lastError,lastDelivery:clone(this.lastDelivery),pairing:this.pending?{pairingId:this.pending.id,expiresAt:this.pending.expiresAt,preview:clone(this.pending.preview)}:null};}
  reset(){this.revision++;this.controller.abort();this.controller=new AbortController();this.pending=null;this.lastError='';}
  configure(input){
-  if(this.closed)throw Error('Notifications are closed.');if(input.persistToken!==undefined&&typeof input.persistToken!=='boolean')throw Error('Choose whether to remember the token.');
+  if(this.closed)throw Error('Notifications are closed.');if(isSealed(this.config.savedToken)&&!this.vault?.key)throw Error('Unlock Credential protection before editing notification credentials.');if(input.persistToken!==undefined&&typeof input.persistToken!=='boolean')throw Error('Choose whether to remember the token.');
   const token=input.token!==undefined?tokenValue(input.token):this.token(),changed=input.token!==undefined&&token!==this.token();
   const persist=input.persistToken??!!this.config.savedToken,next={...this.config,quietHours:input.quietHours===undefined?this.config.quietHours:quietValue(input.quietHours),baseUrl:input.baseUrl===undefined?this.config.baseUrl:privateBase(input.baseUrl)};
-  if(changed){next.enabled=false;next.recipient=null;}delete next.savedToken;if(persist&&token)next.savedToken=token;
+  if(changed){next.enabled=false;next.recipient=null;}delete next.savedToken;if(persist&&token)next.savedToken=protectSecret(this.vault,token,'telegram');
   writePrivateJson(this.file,next);this.reset();this.config=next;this.sessionToken=persist?'':token;return this.status();
  }
  async request(method,body={},signal=this.controller.signal){

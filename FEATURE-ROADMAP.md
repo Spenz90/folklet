@@ -1,4 +1,9 @@
-# Folklet 0.6: from ideas to features
+# Folklet: features and release readiness
+
+## Reliability upgrade — development source
+
+The next source increment covers encrypted workspace backups and separate restores, optional mobile draft autosave, smaller state updates with history pagination, protected remembered credentials, complete restart warnings, opt-in generic phone push, API metering/limits and a starter tool catalog. Data controls are under **Data & reliability**. See [Recovery](RECOVERY.md) and [real-world checks](REAL-WORLD-CHECKS.md). These changes are not part of the published 0.6.1 downloads.
+
 
 ## Next upgrade: mobile and private hosting (development source)
 

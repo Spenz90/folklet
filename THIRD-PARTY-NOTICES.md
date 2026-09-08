@@ -25,3 +25,6 @@ Native helper source files are part of Folklet under MIT. No third-party native 
 Microsoft Edge/Chrome, .NET Framework, model accounts, API credits and hosting are not granted by Folklet's license. Optional installed browsers and services retain their respective terms. ChatGPT authentication stays with the official Codex engine; user credentials are never part of the distributable.
 
 Folklet is an independent community application, not an official xAI, OpenAI, Microsoft, Electron, Tailscale or model-provider product. See README.md for inspiration credits.
+## Web Push dependency in development source
+
+`web-push` 3.6.7 (MIT), from https://github.com/web-push-libs/web-push, supplies standards-based payload encryption and VAPID delivery. Its exact dependency tree and integrity hashes are pinned in package-lock.json. Distributed npm packages retain their own license files. The upstream filesystem MCP server is tested separately and is not bundled or installed by opening the catalog.

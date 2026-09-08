@@ -17,7 +17,7 @@ async function abortable(promise,signal){
  const cancelled=new Promise((_,reject)=>{listener=()=>reject(stopped());signal.addEventListener('abort',listener,{once:true});});
  try{return await Promise.race([promise,cancelled]);}finally{signal.removeEventListener('abort',listener);}
 }
-export async function runApiAgent({connection,model,reasoningEffort='',modelMetadata,system='',messages=[],tools=[],executeTool,signal,onMessage=()=>{},onActivity=()=>{},fetchImpl=fetch,maxIterations=24}={}){
+export async function runApiAgent({connection,model,reasoningEffort='',modelMetadata,system='',messages=[],tools=[],executeTool,signal,onMessage=()=>{},onActivity=()=>{},fetchImpl=fetch,maxIterations=24,beforeRequest=()=>null,onUsage=()=>{}}={}){
  if(!connection||connection.type==='codex')throw Error('Choose an API provider for this task.');
  if(typeof model!=='string'||!model.trim())throw Error('Choose a model ID for this API provider.');
  if(typeof executeTool!=='function')throw Error('The API tool runner is unavailable.');
@@ -50,7 +50,8 @@ export async function runApiAgent({connection,model,reasoningEffort='',modelMeta
  for(let iteration=0;iteration<limit;iteration++){
   check(signal);onActivity(`Thinking (${iteration+1}/${limit})`);
   const body=responses?{model,instructions:system,input:history,store:false,include:['reasoning.encrypted_content'],...reasoning,...(tools.length?{tools:tools.map(t=>({type:'function',name:t.name,description:t.description,parameters:t.inputSchema,strict:false}))}:{})}:anthropic?{model,max_tokens:reasoning.thinking?16384:4096,system,messages:history,...reasoning,...(tools.length?{tools:tools.map(t=>({name:t.name,description:t.description,input_schema:t.inputSchema}))}:{})}:{model,messages:history,stream:false,...reasoning,...(tools.length?{tools:tools.map(t=>({type:'function',function:{name:t.name,description:t.description,parameters:t.inputSchema}}))}:{})};
-  const result=await providerJson(connection.baseUrl+(responses?'/responses':anthropic?'/messages':'/chat/completions'),{fetchImpl,signal,method:'POST',headers:providerHeaders(connection),body:JSON.stringify(body)});check(signal);
+  const requestId=beforeRequest();
+  const result=await providerJson(connection.baseUrl+(responses?'/responses':anthropic?'/messages':'/chat/completions'),{fetchImpl,signal,method:'POST',headers:providerHeaders(connection),body:JSON.stringify(body)});onUsage(requestId,result.usage);check(signal);
   if(responses){
    if(result.status==='incomplete')throw Error('The provider reached its response limit. Lower reasoning or retry with a smaller task.');
    if(result.status!=='completed'||!Array.isArray(result.output))throw Error('The provider did not complete a valid response. Check the model and try again.');

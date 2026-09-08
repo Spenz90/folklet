@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — reliability and portable workspaces
+
+- Add encrypted backups, idle schedules, authenticated archive inspection, and restoration into a separate workspace with routines paused and connections disabled.
+- Add optional device-local draft autosave, bounded history pages and state deltas. No automatic send or approval replay.
+- Protect remembered Folklet credentials through a password vault or OS-backed master key. Add explicit legacy migration and restart unlock status.
+- Add opt-in generic Web Push, paired-device subscription controls and quiet hours using pinned web-push 3.6.7.
+- Meter API requests and provider token usage, configure estimated USD prices and block new requests at selected daily limits. ChatGPT subscription usage is not measured.
+- Add a starter catalog with a pinned upstream filesystem MCP recipe and portable instruction examples, manual GitHub release checks, publisher signing preparation, and recovery/real-world validation guides.
+- Extend restart readiness to fallback providers, repository/Telegram tokens, disconnected plugins, vaults, backups and push.
+
+
 ## Unreleased — mobile connection and private hosting upgrade
 
 - Add a live connection indicator and a Host status view on desktop and phone, showing capacity, work counts, host time zone and restart-related checks. Read-only Linux probes verify service ownership, boot startup, lingering and crash restart policy. Temporary API keys are called out before relying on unattended work.

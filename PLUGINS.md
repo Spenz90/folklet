@@ -62,3 +62,9 @@ To stop access, choose **Save disabled** or **Remove connection**. Removing a pa
 Credentials stay in memory by default. Explicitly remembered credentials are plaintext files in Folklet's private data folder, not an encrypted vault. Unix uses owner-only file permissions; Windows uses inherited folder permissions. Original imported config files and external programs may retain their own copies. Read [security and privacy](SECURITY.md).
 
 These adapters have automated fixture coverage, including local protocol and cancellation checks. That is not certification of the Hermes/OpenClaw catalogs or every third-party server. Real upstream gateway, authenticated service and target-device checks remain separate work; consult [release checks](RELEASE-CHECKS.md) for the evidence attached to a release.
+
+## Starter catalog in development source
+
+Open **Data & reliability → Starter catalog**. The official filesystem recipe pins `@modelcontextprotocol/server-filesystem@2026.8.31` and requires an existing folder, a separate Node/npm installation and explicit package-runner consent. Preparing it only saves a disabled connection; it does not install or run code. The upstream sample check verifies discovery, file reading and refusal outside the chosen folder. Each actual call still needs approval.
+
+The Hermes-style and OpenClaw-style skills are Folklet-authored portable instruction starters. Imports remain pending and do not activate native runtimes or schedules. Their verification label is an instruction-format fixture, not upstream native-plugin certification. New remembered tool credentials use the vault; legacy plaintext copies can be migrated in **Credential protection**.

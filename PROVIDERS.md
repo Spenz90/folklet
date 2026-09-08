@@ -73,3 +73,7 @@ Provider settings and keys are managed from the authenticated local host interfa
 Folklet does not purchase credits or enforce a universal provider spending cap. Configure limits in the provider's account and watch its usage. Routine and browser tasks can make multiple model calls. There are no fixed provider-price promises in this preview.
 
 The connection protocol is covered by automated adapter tests. This does not mean every provider/model combination has had a live paid-account test. Consult the release checks and try one small task with each connection before relying on unattended routines.
+
+## Usage and protected credentials in development source
+
+Open **Data & reliability → Usage & limits** for API request counts, provider-reported tokens and estimated USD spending. Enter prices for each exact connection/model ID. Unknown prices or missing usage are shown as unknown, not free. Daily limits use UTC and block new API requests after the recorded request or estimated-cost threshold is reached. In-flight requests, failed calls and provider-specific prices can make bills differ; use provider-side limits for billing controls. ChatGPT subscription consumption is not measured here. Configure **Credential protection** before choosing to remember a new key.

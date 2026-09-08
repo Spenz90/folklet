@@ -58,6 +58,7 @@ export class Store {
   const databaseStat=fs.lstatSync(this.file,{throwIfNoEntry:false});if(databaseStat&&(databaseStat.isSymbolicLink()||!databaseStat.isFile()||databaseStat.nlink>1))throw Error('FOLKLET storage must be a regular private file, not a link.');
   if(fs.existsSync(this.file))this.db=JSON.parse(fs.readFileSync(this.file,'utf8'));
   else {const old=path.join(root,'bots.json');this.db={bots:fs.existsSync(old)?JSON.parse(fs.readFileSync(old,'utf8')):[],tasks:[],routines:[],channels:[],notifications:[]};}
+  this.db.workspaceId??=uid();
   for(const b of this.db.bots){
    // Portable data copies keep managed workspaces beside crew.json. Never
    // recreate their saved location on the previous PC or installation path.

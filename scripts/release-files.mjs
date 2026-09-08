@@ -10,6 +10,8 @@ export const sourceFiles = [
   'RELEASING.md', 'THIRD-PARTY-NOTICES.md', 'RELEASE-CHECKS.md',
   'QUICKSTART.md', 'PROVIDERS.md', 'HOSTING.md', 'BUSINESS.md', 'FEATURE-ROADMAP.md', 'FEATURES.md',
   'package.json', 'package-lock.json', 'PLUGINS.md',
+  'host-status.mjs', 'host-status.test.mjs', 'hosting-ui.mjs', 'hosting-ui.test.mjs',
+  'connection-state.mjs', 'connection-state.test.mjs', 'hosting/check-host.mjs',
   'plugins-ui.mjs', 'plugins-ui.test.mjs', 'plugin-connections.mjs', 'plugin-connections.test.mjs',
   'mcp-client.mjs', 'mcp-client.test.mjs', 'plugin-packages.mjs', 'plugin-packages.test.mjs', 'engine-plugins.test.mjs',
   'scripts/Linux-Sandbox.mjs', 'linux-sandbox.test.mjs',

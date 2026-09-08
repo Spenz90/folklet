@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — mobile connection and private hosting upgrade
+
+- Add a live connection indicator and a Host status view on desktop and phone, showing capacity, work counts, host time zone and restart-related checks. Read-only Linux probes verify service ownership, boot startup, lingering and crash restart policy. Temporary API keys are called out before relying on unattended work.
+- Add a five-step Always-on setup view with copyable, reviewable commands, plus a read-only hosting checker. Setup never buys, deploys or changes a server from the app.
+- Reconnect on foreground/network return with bounded backoff, pause background polling, and stop retrying expired sessions. Preserve drafts in the open page and offer Copy draft before a required reload. Never automatically replay a send or approval; uncertain sends require checking task history.
+- Keep phone administration restrictions, private Tailscale access and the public-only offline cache unchanged. This is development source; real VPS and physical iPhone validation remain outstanding.
+
 ## 0.6.1 — release validation, September 7, 2026
 
 - Rename the app to Folklet, including desktop windows, phone installation and download names. Preserve existing workspaces and connection settings.

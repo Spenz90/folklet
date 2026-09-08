@@ -4,6 +4,15 @@ Folklet runs on a computer or private server that you control. Your phone connec
 
 On desktop, workspace controls are under **My workspace** at the bottom of the sidebar. On the phone layout, use the **Settings** tab. Add accounts and API keys on the host; a paired phone can choose connections that are already set up.
 
+## Mobile and hosting improvements in the development version
+
+- **Host status** shows the connected host's uptime, disk space, queued work, routines and settings that need review. The phone's bot list has a connection-status button.
+- **Always-on setup** walks you through a private Ubuntu server in five steps, with commands you can review and copy. Read [Hosting](HOSTING.md) for the complete instructions.
+- If the connection drops, Folklet reconnects with less frequent checks and refreshes when you return to the app. Unsent text and attachment selections stay in the **open page**. Nothing is automatically resent.
+- If the host restarts or pairing expires, copy your draft before choosing **Reload to reconnect**. Drafts are not saved to the phone's disk; closing or reloading the page discards them. Recheck attachments after reconnecting. If a send lost its confirmation, inspect task history before sending again: the host may already have received it.
+
+These changes are in the development source after 0.6.1; the published 0.6.1 downloads do not include them.
+
 ## 1. Open the app
 
 Extract the whole release archive for your platform. On Windows, open **Start Folklet.cmd**. On Mac, open **Folklet.app**. On Linux, open **Start Folklet.sh** inside the extracted Folklet folder. If your file manager does not offer Run, open a terminal there and run `sh 'Start Folklet.sh'`.

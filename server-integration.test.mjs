@@ -320,7 +320,10 @@ test('isolated host integrates providers, workspace tools, learning and phone bo
   const authorized={...headers,Cookie:cookie,'X-Crew-Token':csrfFor(secret)};
   const phone=async(url,body,expected=200)=>{const response=await request(mobilePort,url,{method:body===undefined?'GET':'POST',body,headers:authorized});assert.equal(response.status,expected,response.text);assert.ok(!response.text.includes(fakeKey));assert.ok(!response.text.includes(token));return response;};
   const home=await phone('/');assert.ok(home.text.includes("window.CREW_TOKEN='"+csrfFor(secret)+"'"));assert.ok(home.text.includes('window.CREW_MOBILE=true'));
-  await phone('/settings-ui.mjs');await phone('/api/providers');await phone('/api/provider-models?id='+provider.id);await phone('/api/native-status');await phone('/api/learning');
+  await phone('/settings-ui.mjs');await phone('/connection-state.mjs');await phone('/hosting-ui.mjs');await phone('/api/providers');await phone('/api/provider-models?id='+provider.id);await phone('/api/native-status');await phone('/api/learning');
+  assert.equal((await request(mobilePort,'/api/host-status',{headers})).status,401);
+  const hostStatus=await phone('/api/host-status');assert.equal(hostStatus.data.phone.enabled,true);assert.ok(Array.isArray(hostStatus.data.checks));assert.equal(hostStatus.headers['cache-control'],'no-store');
+  assert.ok(!hostStatus.text.includes(dataRoot));assert.ok(!hostStatus.text.includes(secret));assert.ok(!hostStatus.text.includes('Fixture phone'));
   const modelSettings=await phone('/api/model-settings?providerId='+provider.id+'&model=fixture-model');assert.deepEqual(modelSettings.data.options.map(option=>option.value),['']);
   await phone('/api/update',{id:bot.id,reasoningEffort:''});
   await phone('/api/update',{id:bot.id,reasoningEffort:'high'},400);

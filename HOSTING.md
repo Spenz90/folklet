@@ -4,6 +4,23 @@ A private server lets Folklet keep working while your laptop is off. It runs its
 
 This is an optional setup kit for **one trusted owner on an Ubuntu 24.04 x64 VPS**. It is not a public multi-user service, a server purchase, or a managed hosting subscription. No server is ordered or deployed by opening this guide. The kit has automated configuration checks; it has not been exercised on a real VPS in this preview.
 
+## Follow setup inside Folklet
+
+In this development version, open **My workspace → Always-on setup**, or **Settings → Always-on setup** on your phone. The five steps explain choosing a host, installing the service, surviving logout, opening a private tunnel and pairing your phone. You can copy commands and review them before running them. Moving through the steps does not execute anything or mark a server as deployed.
+
+Open **Host status** to check the host you are actually connected to. The phone roster also has a connection-status button. The report shows app uptime, available disk space, active and queued work, enabled routines and the host time zone. Calendar routines follow the **host's** clock, which can differ from your phone's clock.
+
+On Linux, status verifies that this Folklet process belongs to the user service, whether the service is enabled, whether user lingering is on, and whether crash recovery is configured. Unknown checks stay unknown. Temporary API keys used by active bots are called out because they will disappear after a restart. Disk and memory readings are snapshots, not capacity guarantees. These read-only checks do not test provider access, prevent host sleep or prove end-to-end phone connectivity.
+
+From the application folder on an installed server, you can also run:
+
+```sh
+./runtime/node hosting/check-host.mjs
+./runtime/node hosting/check-host.mjs --json
+```
+
+The command returns status 0 when its checks pass, 1 when a setting needs review or could not be checked, and 2 for invalid arguments. It inspects the configured service, not the short-lived checker process. The report omits usernames, paths, secrets and task content. It never starts a service, changes lingering, installs software or modifies the firewall.
+
 ## Before you start
 
 Use a server you administer, with a regular SSH user and systemd user services. Do not run Folklet as root. An administrator must prepare the server, SSH access, security updates and required system software first.

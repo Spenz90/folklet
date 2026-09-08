@@ -27,6 +27,7 @@ import {routineSummary} from './routine-policy.mjs';
 import {AppChanges} from './app-changes.mjs';
 import {PluginConnections} from './plugin-connections.mjs';
 import {PluginPackages} from './plugin-packages.mjs';
+import {createHostMonitor,workspaceHostStatus} from './host-status.mjs';
 const root=path.dirname(fileURLToPath(import.meta.url));
 const store=new Store(process.env.CREW_DATA||path.join(root,'data'));
 const computers=new Computers(store.root,(b,e)=>store.event(b,e));
@@ -41,6 +42,7 @@ engine.appChanges=appChanges;
 const account=new AccountConnection({executable:resolveCrewEngine()});
 const modelSettings=new ModelSettings({account,providers});
 const phoneSetup=new PhoneSetupRunner();
+const hostMonitor=createHostMonitor({dataRoot:store.root});
 let mobile;
 const view=b=>({...b,...engine.status(b),modelPreference:b.model||'',computer:computers.summary(b.id),files:store.files(b)});
 function json(res,status,value){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(value));}
@@ -56,11 +58,12 @@ const server=http.createServer(async(req,res)=>{try{
  }
  if(req.method==='GET'&&url.pathname==='/health')return json(res,200,{app:'Crew',version:5,pid:process.pid});
  if(req.method==='GET'&&url.pathname==='/'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'"});return res.end(fs.readFileSync(path.join(root,'index.html'),'utf8').replace('__TOKEN__',token));}
- if(req.method==='GET'&&['/app.js','/markdown.mjs','/settings-ui.mjs','/model-settings-ui.mjs','/review-ui-common.mjs','/skills-ui.mjs','/learning-review-ui.mjs','/recall-ui.mjs','/integrations-ui.mjs','/notifications-ui.mjs','/routine-policy-ui.mjs','/fallback-ui.mjs','/app-changes-ui.mjs','/plugins-ui.mjs','/style.css'].includes(url.pathname)){res.writeHead(200,{'Content-Type':!url.pathname.endsWith('.css')?'text/javascript':'text/css','Cache-Control':'no-store'});return res.end(fs.readFileSync(path.join(root,url.pathname.slice(1))));}
+ if(req.method==='GET'&&['/app.js','/connection-state.mjs','/hosting-ui.mjs','/markdown.mjs','/settings-ui.mjs','/model-settings-ui.mjs','/review-ui-common.mjs','/skills-ui.mjs','/learning-review-ui.mjs','/recall-ui.mjs','/integrations-ui.mjs','/notifications-ui.mjs','/routine-policy-ui.mjs','/fallback-ui.mjs','/app-changes-ui.mjs','/plugins-ui.mjs','/style.css'].includes(url.pathname)){res.writeHead(200,{'Content-Type':!url.pathname.endsWith('.css')?'text/javascript':'text/css','Cache-Control':'no-store'});return res.end(fs.readFileSync(path.join(root,url.pathname.slice(1))));}
  const pwaAssets={'/manifest.webmanifest':'application/manifest+json','/service-worker.js':'text/javascript','/pwa.js':'text/javascript','/offline.html':'text/html; charset=utf-8','/icons/crew-192.png':'image/png','/icons/crew-512.png':'image/png','/icons/crew-maskable-512.png':'image/png','/icons/apple-touch-icon.png':'image/png','/icons/crew.ico':'image/x-icon'};
  if(req.method==='GET'&&pwaAssets[url.pathname]){res.writeHead(200,{'Content-Type':pwaAssets[url.pathname],'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});return res.end(fs.readFileSync(path.join(root,url.pathname.slice(1))));}
- if(req.headers['x-crew-token']!==token)return json(res,403,{error:'Connection expired. Refresh the app.'});
+ if(req.headers['x-crew-token']!==token)return json(res,403,{error:'Connection expired. Refresh the app.',code:'CONNECTION_EXPIRED'});
  if(req.method==='GET'){
+  if(url.pathname==='/api/host-status')return json(res,200,workspaceHostStatus(await hostMonitor(),{...store.db,providers:providers.list(),phone:mobile?.status()}));
   if(url.pathname==='/api/model-settings')return json(res,200,await modelSettings.get(url.searchParams.get('providerId')||'codex',url.searchParams.get('model')||''));
   if(url.pathname==='/api/providers')return json(res,200,providers.list());
   if(url.pathname==='/api/provider-models')return json(res,200,await providers.modelList(url.searchParams.get('id')));

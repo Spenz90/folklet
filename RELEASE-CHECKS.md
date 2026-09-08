@@ -1,5 +1,11 @@
 # Release checks — 0.6.1 validation
 
+## Unreleased mobile and hosting upgrade
+
+The development source adds read-only host checks, guided private-server setup and phone reconnection. A Windows run of the full suite passed **501 tests**, with one Linux-only check skipped and no failures. The host checks cover service process ownership, missing/disabled lingering, desktop limitations, low capacity, temporary API-key warnings and omission of private report fields. The paired-gateway integration verifies that host status requires authentication and does not expose host tokens, device secrets or data paths.
+
+A real Chromium-based browser with isolated sample data checked a 390 × 844 phone viewport and a 1366 × 900 desktop viewport. The host and setup views rendered without horizontal overflow. A network interruption and an actual isolated host restart both retained the open-page draft, with zero task submissions or automatic resubmits and no page errors. This is browser testing, not a physical iPhone or VPS deployment. A source change is not a new packaged release; the existing 0.6.1 downloads remain the dated release below.
+
 ## September 7 hardening pass
 
 The 0.6.1 source is undergoing release validation. A source upload or a successful automated test is not a signed production release. The 0.6.0 evidence below is a dated baseline, not evidence for every changed 0.6.1 path.

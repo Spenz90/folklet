@@ -1,5 +1,9 @@
 # Folklet 0.6: from ideas to features
 
+## Next upgrade: mobile and private hosting (development source)
+
+The next increment adds a Host status screen, five-step Always-on setup, a read-only server checker and connection recovery for the phone. It checks actual service settings, highlights temporary model keys, shows the host clock, preserves drafts in the open page during disconnections and does not replay tasks. See [Quick start](QUICKSTART.md#mobile-and-hosting-improvements-in-the-development-version) and [Hosting](HOSTING.md#follow-setup-inside-folklet). These changes are not in the published 0.6.1 downloads. Real VPS and physical iPhone validation, publisher signing and managed hosting remain separate work.
+
 The seven ideas researched on September 5, 2026 are implemented in the **0.6.0 community-preview source**. An additional source-draft workflow makes app improvements reviewable before application. Use [the feature guide](FEATURES.md) for instructions and [release checks](RELEASE-CHECKS.md) for validation status. Implementation does not mean every device, provider or external service has had a live test.
 
 “Hermes” means Nous Research's Hermes Agent; “Clawbot” was interpreted as OpenClaw. Their documentation informed the ideas below. Folklet implements its own bounded versions. Version 0.6.1 adds portable imports and external tool connections, with the compatibility limits described below; it does not promise feature parity.
